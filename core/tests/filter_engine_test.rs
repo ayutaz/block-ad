@@ -57,3 +57,48 @@ fn should_block_multiple_ad_domains() {
         );
     }
 }
+
+#[test]
+fn should_support_wildcard_patterns() {
+    // Given: A filter engine with wildcard patterns
+    let engine = FilterEngine::new_with_patterns(vec![
+        "*/ads/*".to_string(),
+        "*.doubleclick.*".to_string(),
+        "*://ad.*".to_string(),
+    ]);
+    
+    // When & Then: Check various URLs against wildcard patterns
+    
+    // Should block URLs matching */ads/*
+    assert!(engine.should_block("https://example.com/ads/banner.jpg").should_block);
+    assert!(engine.should_block("http://site.com/static/ads/video.mp4").should_block);
+    
+    // Should block URLs matching *.doubleclick.*
+    assert!(engine.should_block("https://stats.doubleclick.net/track").should_block);
+    assert!(engine.should_block("http://ad.doubleclick.com/pixel").should_block);
+    
+    // Should block URLs matching *://ad.*
+    assert!(engine.should_block("https://ad.example.com/banner").should_block);
+    assert!(engine.should_block("http://ad.site.org/track").should_block);
+    
+    // Should NOT block URLs that don't match patterns
+    assert!(!engine.should_block("https://example.com/content").should_block);
+    assert!(!engine.should_block("https://addons.mozilla.org").should_block); // Contains "ad" but not matching pattern
+}
+
+#[test]
+fn should_match_subdomain_patterns() {
+    // Given: A filter engine with subdomain patterns
+    let engine = FilterEngine::new_with_patterns(vec![
+        "||doubleclick.net^".to_string(),  // Match domain and all subdomains
+    ]);
+    
+    // When & Then: Test subdomain matching
+    assert!(engine.should_block("https://doubleclick.net/").should_block);
+    assert!(engine.should_block("https://ads.doubleclick.net/pixel").should_block);
+    assert!(engine.should_block("https://stats.g.doubleclick.net/track").should_block);
+    
+    // Should NOT block similar but different domains
+    assert!(!engine.should_block("https://notdoubleclick.net/").should_block);
+    assert!(!engine.should_block("https://doubleclick.com/").should_block);
+}
