@@ -142,7 +142,7 @@ example.com##.banner
     let css_rules = loader.get_css_rules(filter_list, "example.com").unwrap();
     
     // Then: Appropriate CSS rules should be returned
-    assert!(css_rules.contains(".advertisement"));
-    assert!(css_rules.contains(".banner"));
-    assert!(!css_rules.contains(".sidebar-ad")); // excluded by ~example.com
+    assert!(css_rules.iter().any(|r| r == ".advertisement"));
+    assert!(css_rules.iter().any(|r| r == ".banner"));
+    assert!(!css_rules.iter().any(|r| r == ".sidebar-ad")); // excluded by ~example.com
 }

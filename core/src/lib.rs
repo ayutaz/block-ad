@@ -6,6 +6,7 @@
 #![allow(non_snake_case)]
 
 pub mod filter_engine;
+pub mod filter_list;
 pub mod ffi;
 pub mod network;
 pub mod rules;
@@ -13,6 +14,7 @@ pub mod statistics;
 pub mod utils;
 
 pub use filter_engine::{FilterEngine, BlockDecision};
+pub use filter_list::FilterListLoader;
 pub use statistics::{Statistics, BlockEvent, DomainStats};
 
 /// Core configuration for the ad blocking engine

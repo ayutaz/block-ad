@@ -9,7 +9,8 @@
       "Bash(chmod:*)",
       "Bash(cargo test)",
       "Bash(cargo update:*)",
-      "Bash(cargo test:*)"
+      "Bash(cargo test:*)",
+      "Bash(RUST_BACKTRACE=1 cargo test should_handle_exception_rules -- --nocapture)"
     ],
     "deny": []
   }
