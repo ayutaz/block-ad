@@ -2,6 +2,9 @@
 //! 
 //! TDD Implementation - Starting with minimal code to pass tests
 
+use aho_corasick::AhoCorasick;
+use std::sync::Arc;
+
 /// Result of a block decision
 #[derive(Debug, Clone, PartialEq)]
 pub struct BlockDecision {
@@ -9,6 +12,15 @@ pub struct BlockDecision {
     pub should_block: bool,
     /// Optional reason for the decision
     pub reason: Option<String>,
+}
+
+/// Pattern matching statistics
+#[derive(Debug, Clone)]
+pub struct PatternStats {
+    /// Number of compiled patterns
+    pub compiled_patterns: usize,
+    /// Whether Aho-Corasick is used
+    pub uses_aho_corasick: bool,
 }
 
 /// Type of filter rule
@@ -28,6 +40,10 @@ enum FilterRule {
 pub struct FilterEngine {
     /// Compiled filter rules
     rules: Vec<FilterRule>,
+    /// Aho-Corasick automaton for fast domain matching
+    domain_matcher: Option<Arc<AhoCorasick>>,
+    /// Domain patterns for Aho-Corasick
+    domain_patterns: Vec<String>,
 }
 
 impl FilterEngine {
@@ -43,7 +59,14 @@ impl FilterEngine {
             .map(Self::parse_rule)
             .collect();
         
-        Ok(FilterEngine { rules })
+        let mut engine = FilterEngine {
+            rules,
+            domain_matcher: None,
+            domain_patterns: Vec::new(),
+        };
+        
+        engine.compile_patterns();
+        Ok(engine)
     }
     
     /// Parse a raw rule string into a FilterRule
@@ -75,7 +98,14 @@ impl FilterEngine {
             FilterRule::Domain("amazon-adsystem.com".to_string()),
         ];
         
-        FilterEngine { rules }
+        let mut engine = FilterEngine {
+            rules,
+            domain_matcher: None,
+            domain_patterns: Vec::new(),
+        };
+        
+        engine.compile_patterns();
+        engine
     }
     
     /// Create a new filter engine with custom patterns
@@ -84,7 +114,40 @@ impl FilterEngine {
             .map(Self::parse_rule)
             .collect();
         
-        FilterEngine { rules }
+        let mut engine = FilterEngine {
+            rules,
+            domain_matcher: None,
+            domain_patterns: Vec::new(),
+        };
+        
+        engine.compile_patterns();
+        engine
+    }
+    
+    /// Compile patterns for efficient matching
+    fn compile_patterns(&mut self) {
+        // Extract domain and subdomain patterns for Aho-Corasick
+        self.domain_patterns = self.rules.iter()
+            .filter_map(|rule| match rule {
+                FilterRule::Domain(domain) => Some(domain.clone()),
+                FilterRule::SubdomainPattern(domain) => Some(domain.clone()),
+                _ => None,
+            })
+            .collect();
+        
+        // Build Aho-Corasick automaton if we have domain patterns
+        if !self.domain_patterns.is_empty() {
+            let ac = AhoCorasick::new(&self.domain_patterns).unwrap();
+            self.domain_matcher = Some(Arc::new(ac));
+        }
+    }
+    
+    /// Get pattern statistics
+    pub fn get_pattern_stats(&self) -> PatternStats {
+        PatternStats {
+            compiled_patterns: self.rules.len(),
+            uses_aho_corasick: self.domain_matcher.is_some(),
+        }
     }
     
     /// Check if a URL should be blocked
@@ -101,30 +164,45 @@ impl FilterEngine {
             }
         }
         
-        // Then check blocking rules
-        for rule in &self.rules {
-            match rule {
-                FilterRule::Domain(domain) => {
-                    if url.contains(domain) {
+        // Use Aho-Corasick for fast domain matching if available
+        if let Some(ref matcher) = self.domain_matcher {
+            for match_result in matcher.find_iter(url) {
+                let matched_pattern = &self.domain_patterns[match_result.pattern()];
+                
+                // Check if this is a subdomain pattern that needs special handling
+                let is_subdomain_pattern = self.rules.iter().any(|rule| {
+                    matches!(rule, FilterRule::SubdomainPattern(domain) if domain == matched_pattern)
+                });
+                
+                if is_subdomain_pattern {
+                    // Verify it's actually a subdomain match
+                    if self.matches_subdomain(url, matched_pattern) {
                         return BlockDecision {
                             should_block: true,
-                            reason: Some(format!("Matched ad domain: {}", domain)),
+                            reason: Some(format!("Matched subdomain: {}", matched_pattern)),
                         };
                     }
+                } else {
+                    // Regular domain match
+                    return BlockDecision {
+                        should_block: true,
+                        reason: Some(format!("Matched ad domain: {}", matched_pattern)),
+                    };
+                }
+            }
+        }
+        
+        // Then check other blocking rules
+        for rule in &self.rules {
+            match rule {
+                FilterRule::Domain(_) | FilterRule::SubdomainPattern(_) => {
+                    // Already handled by Aho-Corasick above
                 }
                 FilterRule::Pattern(pattern) => {
                     if self.matches_wildcard_pattern(url, pattern) {
                         return BlockDecision {
                             should_block: true,
                             reason: Some(format!("Matched pattern: {}", pattern)),
-                        };
-                    }
-                }
-                FilterRule::SubdomainPattern(domain) => {
-                    if self.matches_subdomain(url, domain) {
-                        return BlockDecision {
-                            should_block: true,
-                            reason: Some(format!("Matched subdomain: {}", domain)),
                         };
                     }
                 }
