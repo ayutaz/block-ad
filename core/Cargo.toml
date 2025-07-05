@@ -1,0 +1,59 @@
+[package]
+name = "adblock-core"
+version = "0.1.0"
+edition = "2021"
+authors = ["AdBlock Developer <adblock@example.com>"]
+description = "High-performance ad blocking engine"
+license = "MIT"
+
+[lib]
+name = "adblock_core"
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+# Pattern matching
+aho-corasick = "1.1"
+regex = "1.10"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+thiserror = "1.0"
+
+# Logging
+log = "0.4"
+
+# Performance
+once_cell = "1.19"
+parking_lot = "0.12"
+
+# Async runtime (optional)
+tokio = { version = "1.35", features = ["rt", "net"], optional = true }
+
+[target.'cfg(target_os = "android")'.dependencies]
+jni = "0.21"
+android_logger = "0.13"
+
+[target.'cfg(target_os = "ios")'.dependencies]
+objc = "0.2"
+
+[dev-dependencies]
+criterion = "0.5"
+mockall = "0.12"
+proptest = "1.4"
+
+[features]
+default = []
+async = ["tokio"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+[[bench]]
+name = "filter_benchmark"
+harness = false
