@@ -36,6 +36,7 @@ impl Default for Config {
 /// Main entry point for the ad blocking engine
 pub struct AdBlockCore {
     engine: std::sync::Arc<FilterEngine>,
+    #[allow(dead_code)]
     config: Config,
 }
 

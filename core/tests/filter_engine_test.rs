@@ -3,7 +3,7 @@
 //! Starting with the most basic functionality:
 //! Blocking requests from known ad domains
 
-use adblock_core::filter_engine::{FilterEngine, BlockDecision};
+use adblock_core::filter_engine::FilterEngine;
 
 #[test]
 fn should_block_doubleclick_domain() {

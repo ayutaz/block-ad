@@ -50,7 +50,8 @@ impl FilterEngine {
     }
     
     /// Create a new filter engine from configuration
-    pub fn new(config: &crate::Config) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(_config: &crate::Config) -> Result<Self, Box<dyn std::error::Error>> {
+        // TODO: Load rules based on config
         // For now, just return default
         Ok(Self::new_with_defaults())
     }

@@ -8,7 +8,8 @@
       "Bash(mkdir:*)",
       "Bash(chmod:*)",
       "Bash(cargo test)",
-      "Bash(cargo update:*)"
+      "Bash(cargo update:*)",
+      "Bash(cargo test:*)"
     ],
     "deny": []
   }
