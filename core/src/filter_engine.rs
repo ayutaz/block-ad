@@ -36,14 +36,27 @@ enum FilterRule {
     Exception(String),
 }
 
+/// Pattern info for tracking rule types
+#[derive(Debug, Clone)]
+struct PatternInfo {
+    pattern: String,
+    rule_type: PatternType,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum PatternType {
+    Domain,
+    Subdomain,
+}
+
 /// Main filter engine for ad blocking
 pub struct FilterEngine {
     /// Compiled filter rules
     rules: Vec<FilterRule>,
     /// Aho-Corasick automaton for fast domain matching
     domain_matcher: Option<Arc<AhoCorasick>>,
-    /// Domain patterns for Aho-Corasick
-    domain_patterns: Vec<String>,
+    /// Pattern info for matched patterns
+    pattern_info: Vec<PatternInfo>,
 }
 
 impl FilterEngine {
@@ -62,7 +75,7 @@ impl FilterEngine {
         let mut engine = FilterEngine {
             rules,
             domain_matcher: None,
-            domain_patterns: Vec::new(),
+            pattern_info: Vec::new(),
         };
         
         engine.compile_patterns();
@@ -101,7 +114,7 @@ impl FilterEngine {
         let mut engine = FilterEngine {
             rules,
             domain_matcher: None,
-            domain_patterns: Vec::new(),
+            pattern_info: Vec::new(),
         };
         
         engine.compile_patterns();
@@ -117,7 +130,7 @@ impl FilterEngine {
         let mut engine = FilterEngine {
             rules,
             domain_matcher: None,
-            domain_patterns: Vec::new(),
+            pattern_info: Vec::new(),
         };
         
         engine.compile_patterns();
@@ -126,18 +139,33 @@ impl FilterEngine {
     
     /// Compile patterns for efficient matching
     fn compile_patterns(&mut self) {
-        // Extract domain and subdomain patterns for Aho-Corasick
-        self.domain_patterns = self.rules.iter()
-            .filter_map(|rule| match rule {
-                FilterRule::Domain(domain) => Some(domain.clone()),
-                FilterRule::SubdomainPattern(domain) => Some(domain.clone()),
-                _ => None,
-            })
-            .collect();
+        // Extract patterns and their info for Aho-Corasick
+        let mut patterns = Vec::new();
+        self.pattern_info.clear();
         
-        // Build Aho-Corasick automaton if we have domain patterns
-        if !self.domain_patterns.is_empty() {
-            let ac = AhoCorasick::new(&self.domain_patterns).unwrap();
+        for rule in &self.rules {
+            match rule {
+                FilterRule::Domain(domain) => {
+                    patterns.push(domain.clone());
+                    self.pattern_info.push(PatternInfo {
+                        pattern: domain.clone(),
+                        rule_type: PatternType::Domain,
+                    });
+                }
+                FilterRule::SubdomainPattern(domain) => {
+                    patterns.push(domain.clone());
+                    self.pattern_info.push(PatternInfo {
+                        pattern: domain.clone(),
+                        rule_type: PatternType::Subdomain,
+                    });
+                }
+                _ => {}
+            }
+        }
+        
+        // Build Aho-Corasick automaton if we have patterns
+        if !patterns.is_empty() {
+            let ac = AhoCorasick::new(&patterns).unwrap();
             self.domain_matcher = Some(Arc::new(ac));
         }
     }
@@ -164,32 +192,9 @@ impl FilterEngine {
             }
         }
         
-        // Use Aho-Corasick for fast domain matching if available
-        if let Some(ref matcher) = self.domain_matcher {
-            for match_result in matcher.find_iter(url) {
-                let matched_pattern = &self.domain_patterns[match_result.pattern()];
-                
-                // Check if this is a subdomain pattern that needs special handling
-                let is_subdomain_pattern = self.rules.iter().any(|rule| {
-                    matches!(rule, FilterRule::SubdomainPattern(domain) if domain == matched_pattern)
-                });
-                
-                if is_subdomain_pattern {
-                    // Verify it's actually a subdomain match
-                    if self.matches_subdomain(url, matched_pattern) {
-                        return BlockDecision {
-                            should_block: true,
-                            reason: Some(format!("Matched subdomain: {}", matched_pattern)),
-                        };
-                    }
-                } else {
-                    // Regular domain match
-                    return BlockDecision {
-                        should_block: true,
-                        reason: Some(format!("Matched ad domain: {}", matched_pattern)),
-                    };
-                }
-            }
+        // Use Aho-Corasick for fast domain matching
+        if let Some(decision) = self.check_aho_corasick_matches(url) {
+            return decision;
         }
         
         // Then check other blocking rules
@@ -216,6 +221,35 @@ impl FilterEngine {
             should_block: false,
             reason: None,
         }
+    }
+    
+    /// Check Aho-Corasick matches
+    fn check_aho_corasick_matches(&self, url: &str) -> Option<BlockDecision> {
+        let matcher = self.domain_matcher.as_ref()?;
+        
+        for match_result in matcher.find_iter(url) {
+            let pattern_info = &self.pattern_info[match_result.pattern()];
+            
+            match pattern_info.rule_type {
+                PatternType::Subdomain => {
+                    // Verify it's actually a subdomain match
+                    if self.matches_subdomain(url, &pattern_info.pattern) {
+                        return Some(BlockDecision {
+                            should_block: true,
+                            reason: Some(format!("Matched subdomain: {}", pattern_info.pattern)),
+                        });
+                    }
+                }
+                PatternType::Domain => {
+                    return Some(BlockDecision {
+                        should_block: true,
+                        reason: Some(format!("Matched ad domain: {}", pattern_info.pattern)),
+                    });
+                }
+            }
+        }
+        
+        None
     }
     
     /// Check if URL matches a subdomain pattern
