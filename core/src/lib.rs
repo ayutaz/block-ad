@@ -38,6 +38,7 @@ impl Default for Config {
 /// Main entry point for the ad blocking engine
 pub struct AdBlockCore {
     engine: std::sync::Arc<FilterEngine>,
+    statistics: std::sync::Mutex<Statistics>,
     #[allow(dead_code)]
     config: Config,
 }
@@ -49,13 +50,66 @@ impl AdBlockCore {
         
         Ok(Self {
             engine: std::sync::Arc::new(engine),
+            statistics: std::sync::Mutex::new(Statistics::new()),
             config,
         })
+    }
+    
+    /// Create a new instance with custom patterns
+    pub fn with_patterns(patterns: Vec<String>) -> Result<Self, Box<dyn std::error::Error>> {
+        let engine = FilterEngine::new_with_patterns(patterns);
+        
+        Ok(Self {
+            engine: std::sync::Arc::new(engine),
+            statistics: std::sync::Mutex::new(Statistics::new()),
+            config: Config::default(),
+        })
+    }
+    
+    /// Check if a URL should be blocked and track statistics
+    pub fn check_url(&mut self, url: &str, size: u64) -> filter_engine::BlockDecision {
+        let decision = self.engine.should_block(url);
+        
+        // Extract domain from URL for statistics
+        let domain = extract_domain(url);
+        
+        // Track statistics
+        if let Ok(mut stats) = self.statistics.lock() {
+            if decision.should_block {
+                stats.record_blocked(&domain, size);
+            } else {
+                stats.record_allowed(&domain, size);
+            }
+        }
+        
+        decision
+    }
+    
+    /// Get a copy of current statistics
+    pub fn get_statistics(&self) -> Statistics {
+        self.statistics.lock()
+            .map(|stats| stats.clone())
+            .unwrap_or_else(|_| Statistics::new())
     }
     
     /// Get a reference to the filter engine
     pub fn engine(&self) -> &FilterEngine {
         &self.engine
+    }
+}
+
+/// Extract domain from URL
+fn extract_domain(url: &str) -> String {
+    // Simple domain extraction
+    if let Some(start) = url.find("://") {
+        let after_protocol = &url[start + 3..];
+        if let Some(end) = after_protocol.find('/') {
+            after_protocol[..end].to_string()
+        } else {
+            after_protocol.to_string()
+        }
+    } else {
+        url.to_string()
     }
 }
 

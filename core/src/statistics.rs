@@ -36,7 +36,7 @@ impl Default for StatisticsConfig {
 }
 
 /// Statistics tracker for the ad blocker
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Statistics {
     blocked_count: u64,
     allowed_count: u64,

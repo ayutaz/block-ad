@@ -14,7 +14,7 @@ fn should_track_statistics_when_blocking() {
     let test_cases = vec![
         ("https://doubleclick.net/ad", true, 1024),
         ("https://example.com", false, 512),
-        ("https://googleads.com/track", true, 2048),
+        ("https://googleadservices.com/track", true, 2048),
         ("https://github.com", false, 1024),
     ];
     
@@ -54,7 +54,7 @@ fn should_handle_pattern_matching_with_statistics() {
     // Given: An AdBlockCore with pattern rules
     let mut core = AdBlockCore::with_patterns(vec![
         "*/ads/*".to_string(),
-        "||analytics.^".to_string(),
+        "||analytics.google.com^".to_string(),
     ]).unwrap();
     
     // When: Checking URLs matching patterns
