@@ -9,7 +9,7 @@ class AdBlockEngineTests: XCTestCase {
     
     override func setUp() {
         super.setUp()
-        engine = AdBlockEngine()
+        engine = try! AdBlockEngine()
     }
     
     override func tearDown() {
@@ -19,7 +19,7 @@ class AdBlockEngineTests: XCTestCase {
     
     func testEngineCreationAndDestruction() {
         // Given: A new engine instance
-        let newEngine = AdBlockEngine()
+        let newEngine = try! AdBlockEngine()
         
         // Then: Engine should be initialized
         XCTAssertTrue(newEngine.isInitialized)

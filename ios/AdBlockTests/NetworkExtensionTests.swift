@@ -10,7 +10,7 @@ class NetworkExtensionTests: XCTestCase {
     
     override func setUp() {
         super.setUp()
-        provider = AdBlockPacketTunnelProvider()
+        provider = try! AdBlockPacketTunnelProvider()
     }
     
     override func tearDown() {

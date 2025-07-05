@@ -3,13 +3,12 @@ import NetworkExtension
 /// Packet tunnel provider for Network Extension
 public class AdBlockPacketTunnelProvider: NEPacketTunnelProvider {
     
-    public var engine: AdBlockEngine!
-    private var pendingPackets: [(Data, Int)] = []
+    public private(set) var engine: AdBlockEngine!
     private let packetQueue = DispatchQueue(label: "com.adblock.packets", attributes: .concurrent)
     
-    public override init() {
+    public override init() throws {
+        self.engine = try AdBlockEngine()
         super.init()
-        self.engine = AdBlockEngine()
     }
     
     /// Load filter rules into the engine
@@ -99,7 +98,11 @@ public class AdBlockPacketTunnelProvider: NEPacketTunnelProvider {
     
     private func startPacketHandling() {
         // Read packets from the packet flow
-        packetFlow.readPackets { packets, protocols in
+        packetFlow.readPackets { [weak self] packets, protocols in
+            guard let self = self else { return }
+            
+            var allowedPackets: [(Data, NSNumber)] = []
+            
             for (index, packet) in packets.enumerated() {
                 // Extract destination from packet (simplified for testing)
                 if let host = self.extractHost(from: packet) {
@@ -111,15 +114,14 @@ public class AdBlockPacketTunnelProvider: NEPacketTunnelProvider {
                     }
                 }
                 
-                // Forward allowed packets
-                self.pendingPackets.append((packet, protocols[index]))
+                // Add to allowed packets
+                allowedPackets.append((packet, NSNumber(value: protocols[index])))
             }
             
             // Write allowed packets
-            if !self.pendingPackets.isEmpty {
-                let packetsToWrite = self.pendingPackets.map { $0.0 }
-                let protocolsToWrite = self.pendingPackets.map { NSNumber(value: $0.1) }
-                self.pendingPackets.removeAll()
+            if !allowedPackets.isEmpty {
+                let packetsToWrite = allowedPackets.map { $0.0 }
+                let protocolsToWrite = allowedPackets.map { $0.1 }
                 
                 self.packetFlow.writePackets(packetsToWrite, withProtocols: protocolsToWrite)
             }
@@ -130,8 +132,9 @@ public class AdBlockPacketTunnelProvider: NEPacketTunnelProvider {
     }
     
     private func extractHost(from packet: Data) -> String? {
-        // In a real implementation, parse IP/TCP headers
-        // For now, return nil (simplified)
+        // In a real implementation, this would parse IP/TCP/UDP headers
+        // to extract the destination hostname or IP address
+        // For now, return nil (simplified for testing)
         return nil
     }
 }
