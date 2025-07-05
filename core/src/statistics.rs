@@ -20,14 +20,50 @@ pub struct DomainStats {
     pub data_saved: u64,
 }
 
+/// Configuration for statistics tracking
+#[derive(Debug, Clone)]
+pub struct StatisticsConfig {
+    /// Maximum number of recent events to keep
+    pub max_recent_events: usize,
+}
+
+impl Default for StatisticsConfig {
+    fn default() -> Self {
+        Self {
+            max_recent_events: 1000,
+        }
+    }
+}
+
 /// Statistics tracker for the ad blocker
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Statistics {
     blocked_count: u64,
     allowed_count: u64,
     data_saved: u64,
-    domain_stats: HashMap<String, (u64, u64)>, // (count, data_saved)
+    domain_stats: HashMap<String, DomainStatsInternal>,
     recent_events: Vec<BlockEvent>,
+    config: StatisticsConfig,
+}
+
+/// Internal domain statistics structure
+#[derive(Debug, Default, Clone)]
+struct DomainStatsInternal {
+    count: u64,
+    data_saved: u64,
+}
+
+impl Default for Statistics {
+    fn default() -> Self {
+        Self {
+            blocked_count: 0,
+            allowed_count: 0,
+            data_saved: 0,
+            domain_stats: HashMap::new(),
+            recent_events: Vec::new(),
+            config: StatisticsConfig::default(),
+        }
+    }
 }
 
 impl Statistics {
@@ -36,28 +72,33 @@ impl Statistics {
         Self::default()
     }
     
+    /// Create a new statistics instance with custom configuration
+    pub fn with_config(config: StatisticsConfig) -> Self {
+        Self {
+            config,
+            ..Self::default()
+        }
+    }
+    
     /// Record a blocked request
     pub fn record_blocked(&mut self, domain: &str, size: u64) {
         self.blocked_count += 1;
         self.data_saved += size;
         
         // Update domain stats
-        let entry = self.domain_stats.entry(domain.to_string()).or_insert((0, 0));
-        entry.0 += 1;
-        entry.1 += size;
+        let stats = self.domain_stats
+            .entry(domain.to_string())
+            .or_insert_with(DomainStatsInternal::default);
+        stats.count += 1;
+        stats.data_saved += size;
         
         // Add to recent events
-        self.recent_events.push(BlockEvent {
+        self.add_event(BlockEvent {
             timestamp: SystemTime::now(),
             domain: domain.to_string(),
             blocked: true,
             size,
         });
-        
-        // Keep only last 1000 events
-        if self.recent_events.len() > 1000 {
-            self.recent_events.remove(0);
-        }
     }
     
     /// Record an allowed request
@@ -65,15 +106,20 @@ impl Statistics {
         self.allowed_count += 1;
         
         // Add to recent events
-        self.recent_events.push(BlockEvent {
+        self.add_event(BlockEvent {
             timestamp: SystemTime::now(),
             domain: domain.to_string(),
             blocked: false,
             size,
         });
+    }
+    
+    /// Add an event to recent events, maintaining size limit
+    fn add_event(&mut self, event: BlockEvent) {
+        self.recent_events.push(event);
         
-        // Keep only last 1000 events
-        if self.recent_events.len() > 1000 {
+        // Keep only the configured maximum number of events
+        if self.recent_events.len() > self.config.max_recent_events {
             self.recent_events.remove(0);
         }
     }
@@ -96,15 +142,19 @@ impl Statistics {
     /// Get top blocked domains
     pub fn top_blocked_domains(&self, limit: usize) -> Vec<DomainStats> {
         let mut domains: Vec<_> = self.domain_stats.iter()
-            .map(|(domain, (count, data))| DomainStats {
+            .map(|(domain, stats)| DomainStats {
                 domain: domain.clone(),
-                count: *count,
-                data_saved: *data,
+                count: stats.count,
+                data_saved: stats.data_saved,
             })
             .collect();
         
-        // Sort by count (descending)
-        domains.sort_by(|a, b| b.count.cmp(&a.count));
+        // Sort by count (descending), then by data saved as tiebreaker
+        domains.sort_by(|a, b| {
+            b.count.cmp(&a.count)
+                .then_with(|| b.data_saved.cmp(&a.data_saved))
+        });
+        
         domains.truncate(limit);
         domains
     }
