@@ -7,6 +7,7 @@
 
 pub mod filter_engine;
 pub mod filter_list;
+pub mod filter_updater;
 pub mod ffi;
 pub mod network;
 pub mod rules;
@@ -15,6 +16,7 @@ pub mod utils;
 
 pub use filter_engine::{FilterEngine, BlockDecision};
 pub use filter_list::FilterListLoader;
+pub use filter_updater::{FilterUpdater, UpdateConfig};
 pub use statistics::{Statistics, BlockEvent, DomainStats};
 
 /// Core configuration for the ad blocking engine

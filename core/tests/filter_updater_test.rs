@@ -96,7 +96,7 @@ fn should_merge_multiple_filter_lists() {
         cache_dir: None,
     };
     
-    let mut updater = FilterUpdater::new(config).unwrap();
+    let updater = FilterUpdater::new(config).unwrap();
     
     // When: Updating with multiple filter lists
     let filters1 = "||ads1.com^";
@@ -118,7 +118,7 @@ fn should_handle_download_failures_gracefully() {
         cache_dir: None,
     };
     
-    let mut updater = FilterUpdater::new(config).unwrap();
+    let updater = FilterUpdater::new(config).unwrap();
     
     // When: Attempting to download (simulated failure)
     let result = updater.download_filter_list("https://invalid.example.com/nonexistent");
