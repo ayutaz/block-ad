@@ -2,8 +2,8 @@
 //! 
 //! Track blocking statistics and provide insights
 
-use adblock_core::{Statistics, BlockEvent};
-use std::time::{Duration, SystemTime};
+use adblock_core::Statistics;
+use std::time::Duration;
 
 #[test]
 fn should_track_basic_statistics() {

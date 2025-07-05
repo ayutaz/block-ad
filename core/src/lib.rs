@@ -9,8 +9,10 @@ pub mod filter_engine;
 pub mod ffi;
 pub mod network;
 pub mod rules;
+pub mod statistics;
 
 pub use filter_engine::FilterEngine;
+pub use statistics::{Statistics, BlockEvent};
 
 /// Core configuration for the ad blocking engine
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
