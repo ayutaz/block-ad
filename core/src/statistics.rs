@@ -80,6 +80,21 @@ impl Statistics {
         }
     }
     
+    /// Get blocked count
+    pub fn get_blocked_count(&self) -> u64 {
+        self.blocked_count
+    }
+    
+    /// Get allowed count
+    pub fn get_allowed_count(&self) -> u64 {
+        self.allowed_count
+    }
+    
+    /// Get data saved
+    pub fn get_data_saved(&self) -> u64 {
+        self.data_saved
+    }
+    
     /// Record a blocked request
     pub fn record_blocked(&mut self, domain: &str, size: u64) {
         self.blocked_count += 1;

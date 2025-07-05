@@ -71,6 +71,17 @@ impl AdBlockCore {
         })
     }
     
+    /// Create a new instance from a filter list
+    pub fn from_filter_list(filter_list: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        let engine = FilterEngine::from_filter_list(filter_list)?;
+        
+        Ok(Self {
+            engine: std::sync::Arc::new(engine),
+            statistics: std::sync::Mutex::new(Statistics::new()),
+            config: Config::default(),
+        })
+    }
+    
     /// Check if a URL should be blocked and track statistics
     pub fn check_url(&mut self, url: &str, size: u64) -> BlockDecision {
         let decision = self.engine.should_block(url);
