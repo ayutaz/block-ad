@@ -13,6 +13,26 @@ pub struct AdBlockEngine {
     core: Mutex<AdBlockCore>,
 }
 
+/// Convert C string to Rust string safely
+fn c_str_to_rust(ptr: *const c_char) -> Option<&'static str> {
+    if ptr.is_null() {
+        return None;
+    }
+    
+    unsafe {
+        CStr::from_ptr(ptr).to_str().ok()
+    }
+}
+
+/// Get engine reference safely
+fn get_engine_ref(engine: *mut c_void) -> Option<&'static AdBlockEngine> {
+    if engine.is_null() {
+        return None;
+    }
+    
+    Some(unsafe { &*(engine as *mut AdBlockEngine) })
+}
+
 /// Create a new AdBlock engine
 #[no_mangle]
 pub extern "C" fn adblock_engine_create() -> *mut c_void {
@@ -45,15 +65,14 @@ pub extern "C" fn adblock_engine_destroy(engine: *mut c_void) {
 /// Check if a URL should be blocked
 #[no_mangle]
 pub extern "C" fn adblock_engine_should_block(engine: *mut c_void, url: *const c_char) -> bool {
-    if engine.is_null() || url.is_null() {
-        return false;
-    }
+    let engine = match get_engine_ref(engine) {
+        Some(e) => e,
+        None => return false,
+    };
     
-    let engine = unsafe { &*(engine as *mut AdBlockEngine) };
-    
-    let url_str = match unsafe { CStr::from_ptr(url) }.to_str() {
-        Ok(s) => s,
-        Err(_) => return false,
+    let url_str = match c_str_to_rust(url) {
+        Some(s) => s,
+        None => return false,
     };
     
     match engine.core.lock() {
@@ -69,15 +88,14 @@ pub extern "C" fn adblock_engine_should_block(engine: *mut c_void, url: *const c
 /// Add a single rule to the engine
 #[no_mangle]
 pub extern "C" fn adblock_engine_add_rule(engine: *mut c_void, rule: *const c_char) -> bool {
-    if engine.is_null() || rule.is_null() {
-        return false;
-    }
+    let engine = match get_engine_ref(engine) {
+        Some(e) => e,
+        None => return false,
+    };
     
-    let engine = unsafe { &*(engine as *mut AdBlockEngine) };
-    
-    let _rule_str = match unsafe { CStr::from_ptr(rule) }.to_str() {
-        Ok(s) => s,
-        Err(_) => return false,
+    let _rule_str = match c_str_to_rust(rule) {
+        Some(s) => s,
+        None => return false,
     };
     
     match engine.core.lock() {
@@ -97,15 +115,14 @@ pub extern "C" fn adblock_engine_load_filter_list(
     engine: *mut c_void,
     filter_list: *const c_char,
 ) -> bool {
-    if engine.is_null() || filter_list.is_null() {
-        return false;
-    }
+    let engine = match get_engine_ref(engine) {
+        Some(e) => e,
+        None => return false,
+    };
     
-    let engine = unsafe { &*(engine as *mut AdBlockEngine) };
-    
-    let filter_list_str = match unsafe { CStr::from_ptr(filter_list) }.to_str() {
-        Ok(s) => s,
-        Err(_) => return false,
+    let filter_list_str = match c_str_to_rust(filter_list) {
+        Some(s) => s,
+        None => return false,
     };
     
     match engine.core.lock() {
@@ -126,11 +143,10 @@ pub extern "C" fn adblock_engine_load_filter_list(
 /// Get statistics as JSON string
 #[no_mangle]
 pub extern "C" fn adblock_engine_get_stats(engine: *mut c_void) -> *mut c_char {
-    if engine.is_null() {
-        return ptr::null_mut();
-    }
-    
-    let engine = unsafe { &*(engine as *mut AdBlockEngine) };
+    let engine = match get_engine_ref(engine) {
+        Some(e) => e,
+        None => return ptr::null_mut(),
+    };
     
     match engine.core.lock() {
         Ok(core) => {
