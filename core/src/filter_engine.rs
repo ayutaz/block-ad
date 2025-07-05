@@ -11,56 +11,80 @@ pub struct BlockDecision {
     pub reason: Option<String>,
 }
 
+/// Type of filter rule
+#[derive(Debug, Clone)]
+enum FilterRule {
+    /// Simple domain blocking (e.g., "doubleclick.net")
+    Domain(String),
+    /// Pattern with wildcards (e.g., "*/ads/*")
+    Pattern(String),
+    /// Subdomain pattern (e.g., "||domain.com^")
+    SubdomainPattern(String),
+}
+
 /// Main filter engine for ad blocking
 pub struct FilterEngine {
-    // For now, we'll use a simple list of blocked domains
-    blocked_domains: Vec<String>,
-    // Patterns that support wildcards
-    patterns: Vec<String>,
+    /// Compiled filter rules
+    rules: Vec<FilterRule>,
 }
 
 impl FilterEngine {
     /// Create a new filter engine with default ad-blocking rules
     pub fn new_with_defaults() -> Self {
-        FilterEngine {
-            blocked_domains: vec![
-                "doubleclick.net".to_string(),
-                "googleadservices.com".to_string(),
-                "googlesyndication.com".to_string(),
-                "facebook.com/tr".to_string(),
-                "amazon-adsystem.com".to_string(),
-            ],
-            patterns: vec![],
-        }
+        let rules = vec![
+            FilterRule::Domain("doubleclick.net".to_string()),
+            FilterRule::Domain("googleadservices.com".to_string()),
+            FilterRule::Domain("googlesyndication.com".to_string()),
+            FilterRule::Domain("facebook.com/tr".to_string()),
+            FilterRule::Domain("amazon-adsystem.com".to_string()),
+        ];
+        
+        FilterEngine { rules }
     }
     
     /// Create a new filter engine with custom patterns
     pub fn new_with_patterns(patterns: Vec<String>) -> Self {
-        FilterEngine {
-            blocked_domains: vec![],
-            patterns,
-        }
+        let rules = patterns.into_iter().map(|pattern| {
+            if pattern.starts_with("||") && pattern.ends_with("^") {
+                FilterRule::SubdomainPattern(pattern[2..pattern.len()-1].to_string())
+            } else if pattern.contains('*') {
+                FilterRule::Pattern(pattern)
+            } else {
+                FilterRule::Domain(pattern)
+            }
+        }).collect();
+        
+        FilterEngine { rules }
     }
     
     /// Check if a URL should be blocked
     pub fn should_block(&self, url: &str) -> BlockDecision {
-        // Simple implementation: check if URL contains any blocked domain
-        for domain in &self.blocked_domains {
-            if url.contains(domain) {
-                return BlockDecision {
-                    should_block: true,
-                    reason: Some(format!("Matched ad domain: {}", domain)),
-                };
-            }
-        }
-        
-        // Check patterns
-        for pattern in &self.patterns {
-            if self.matches_pattern(url, pattern) {
-                return BlockDecision {
-                    should_block: true,
-                    reason: Some(format!("Matched pattern: {}", pattern)),
-                };
+        for rule in &self.rules {
+            match rule {
+                FilterRule::Domain(domain) => {
+                    if url.contains(domain) {
+                        return BlockDecision {
+                            should_block: true,
+                            reason: Some(format!("Matched ad domain: {}", domain)),
+                        };
+                    }
+                }
+                FilterRule::Pattern(pattern) => {
+                    if self.matches_wildcard_pattern(url, pattern) {
+                        return BlockDecision {
+                            should_block: true,
+                            reason: Some(format!("Matched pattern: {}", pattern)),
+                        };
+                    }
+                }
+                FilterRule::SubdomainPattern(domain) => {
+                    if self.matches_subdomain(url, domain) {
+                        return BlockDecision {
+                            should_block: true,
+                            reason: Some(format!("Matched subdomain: {}", domain)),
+                        };
+                    }
+                }
             }
         }
         
@@ -70,54 +94,50 @@ impl FilterEngine {
         }
     }
     
-    /// Check if a URL matches a pattern with wildcards
-    fn matches_pattern(&self, url: &str, pattern: &str) -> bool {
-        // Handle subdomain patterns like ||domain.com^
-        if pattern.starts_with("||") && pattern.ends_with("^") {
-            let domain = &pattern[2..pattern.len()-1];
-            // Check if URL contains the domain
-            if let Some(start) = url.find("://") {
-                let url_after_protocol = &url[start+3..];
-                return url_after_protocol.starts_with(domain) || 
-                       url_after_protocol.contains(&format!(".{}", domain));
-            }
+    /// Check if URL matches a subdomain pattern
+    fn matches_subdomain(&self, url: &str, domain: &str) -> bool {
+        if let Some(start) = url.find("://") {
+            let url_after_protocol = &url[start + 3..];
+            let url_host = url_after_protocol.split('/').next().unwrap_or("");
+            
+            // Exact match or subdomain match
+            url_host == domain || url_host.ends_with(&format!(".{}", domain))
+        } else {
+            false
+        }
+    }
+    
+    /// Check if URL matches a wildcard pattern
+    fn matches_wildcard_pattern(&self, url: &str, pattern: &str) -> bool {
+        let pattern_parts: Vec<&str> = pattern.split('*').collect();
+        
+        if pattern_parts.is_empty() {
+            return true;
         }
         
-        // Convert wildcard pattern to regex-like matching
-        let mut pattern_parts = vec![];
-        let mut current = String::new();
+        let mut current_pos = 0;
         
-        for ch in pattern.chars() {
-            if ch == '*' {
-                if !current.is_empty() {
-                    pattern_parts.push(current.clone());
-                    current.clear();
-                }
-                pattern_parts.push("*".to_string());
-            } else {
-                current.push(ch);
-            }
-        }
-        if !current.is_empty() {
-            pattern_parts.push(current);
-        }
-        
-        // Simple wildcard matching
-        let mut url_pos = 0;
         for (i, part) in pattern_parts.iter().enumerate() {
-            if part == "*" {
-                // Wildcard - skip to next part if exists
-                if i + 1 < pattern_parts.len() {
-                    if let Some(pos) = url[url_pos..].find(&pattern_parts[i + 1]) {
-                        url_pos += pos;
-                    } else {
-                        return false;
-                    }
+            if part.is_empty() {
+                // Skip empty parts (consecutive wildcards)
+                continue;
+            }
+            
+            if i == 0 && !pattern.starts_with('*') {
+                // Pattern doesn't start with wildcard, must match from beginning
+                if !url.starts_with(part) {
+                    return false;
+                }
+                current_pos = part.len();
+            } else if i == pattern_parts.len() - 1 && !pattern.ends_with('*') {
+                // Pattern doesn't end with wildcard, must match at end
+                if !url[current_pos..].ends_with(part) {
+                    return false;
                 }
             } else {
-                // Literal match
-                if url[url_pos..].starts_with(part) {
-                    url_pos += part.len();
+                // Find the part somewhere after current position
+                if let Some(pos) = url[current_pos..].find(part) {
+                    current_pos += pos + part.len();
                 } else {
                     return false;
                 }
