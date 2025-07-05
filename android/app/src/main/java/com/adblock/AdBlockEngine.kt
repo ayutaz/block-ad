@@ -11,13 +11,6 @@ import kotlin.concurrent.write
  */
 @Keep
 class AdBlockEngine {
-    
-    companion object {
-        init {
-            System.loadLibrary("adblock_core")
-        }
-    }
-    
     // Native engine handle
     private var engineHandle: Long = 0
     private val lock = ReentrantReadWriteLock()
@@ -91,6 +84,18 @@ class AdBlockEngine {
     private fun extractJsonLong(json: String, key: String): Long? {
         val pattern = """"$key"\s*:\s*(\d+)""".toRegex()
         return pattern.find(json)?.groupValues?.get(1)?.toLongOrNull()
+    }
+    
+    companion object {
+        private const val LIBRARY_NAME = "adblock_jni"
+        
+        init {
+            try {
+                System.loadLibrary(LIBRARY_NAME)
+            } catch (e: UnsatisfiedLinkError) {
+                throw RuntimeException("Failed to load native library: $LIBRARY_NAME", e)
+            }
+        }
     }
     
     // Native methods

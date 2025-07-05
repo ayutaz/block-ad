@@ -137,14 +137,27 @@ class AdBlockVpnService : VpnService() {
     }
     
     private fun processPacket(packet: ByteBuffer, output: FileOutputStream) {
-        // Simple packet inspection (in real implementation, parse IP/TCP/UDP headers)
-        // For now, just forward all packets
+        // Extract destination info from packet (simplified)
+        val packetInfo = extractPacketInfo(packet)
         
+        if (packetInfo != null && shouldBlockPacket(packetInfo)) {
+            // Drop packet by not forwarding it
+            return
+        }
+        
+        // Forward allowed packets
         try {
+            packet.rewind()
             output.channel.write(packet)
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+    
+    private fun extractPacketInfo(packet: ByteBuffer): NetworkPacket? {
+        // In a real implementation, parse IP/TCP/UDP headers
+        // For now, return a placeholder
+        return null
     }
     
     private fun createNotificationChannel() {

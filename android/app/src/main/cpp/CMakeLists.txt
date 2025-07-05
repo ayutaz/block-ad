@@ -11,6 +11,9 @@ add_library(
 # Find and link required libraries
 find_library(log-lib log)
 
+# Set output library name to match what Java expects
+set_target_properties(adblock_jni PROPERTIES OUTPUT_NAME "adblock_jni")
+
 # Link the Rust static library
 add_library(adblock_core STATIC IMPORTED)
 set_target_properties(
