@@ -6,7 +6,9 @@
       "Bash(git config:*)",
       "Bash(git commit:*)",
       "Bash(mkdir:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(cargo test)",
+      "Bash(cargo update:*)"
     ],
     "deny": []
   }
