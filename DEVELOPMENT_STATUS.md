@@ -56,12 +56,22 @@ All core functionality has been implemented following Test-Driven Development (T
    - Tests: `performance_test.rs`
    - Status: Complete with refactoring
 
+8. **FFI Bindings**
+   - C-compatible API for Android/iOS integration
+   - Engine creation/destruction with opaque handles
+   - URL blocking, filter loading, statistics retrieval
+   - Thread-safe implementation with Mutex
+   - Null safety and error handling
+   - Tests: `ffi.rs` (internal tests)
+   - Status: Complete with refactoring
+
 ### 📁 Core Implementation Files
 
 - `core/src/filter_engine.rs` - Main filtering logic with Aho-Corasick
 - `core/src/statistics.rs` - Statistics tracking
 - `core/src/filter_list.rs` - Filter list parsing
 - `core/src/filter_updater.rs` - Filter list updates and caching
+- `core/src/ffi.rs` - FFI bindings for C-compatible API
 - `core/src/utils.rs` - Utility functions
 
 ### 🧪 Test Coverage
@@ -71,6 +81,8 @@ All features have comprehensive test coverage:
 - Integration tests
 - Performance benchmarks
 - Edge case handling
+- FFI safety tests
+- Total: 43 tests passing
 
 ### 🚀 Performance Metrics
 
