@@ -2,9 +2,13 @@
 //! 
 //! Downloads and caches filter lists from remote sources
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 use std::collections::HashMap;
+
+/// Default cache file names
+const FILTER_CACHE_FILE: &str = "filters_cache.txt";
+const METADATA_FILE: &str = "cache_metadata.json";
 
 /// Configuration for filter updates
 #[derive(Debug, Clone)]
@@ -57,22 +61,36 @@ impl FilterUpdater {
     
     /// Update with provided content (for testing)
     pub fn update_with_content(&mut self, content: &str) -> Result<(), Box<dyn std::error::Error>> {
-        // Save to cache if configured
         if let Some(ref cache_dir) = self.config.cache_dir {
-            std::fs::create_dir_all(cache_dir)?;
-            let cache_file = cache_dir.join("filters_cache.txt");
-            std::fs::write(&cache_file, content)?;
-            
-            // Save metadata
-            let metadata_file = cache_dir.join("cache_metadata.json");
-            let metadata = CacheMetadata {
-                last_update: SystemTime::now(),
-            };
-            let metadata_json = serde_json::to_string(&metadata)?;
-            std::fs::write(&metadata_file, metadata_json)?;
+            self.save_to_cache(cache_dir, content)?;
         }
         
         self.last_update = Some(SystemTime::now());
+        Ok(())
+    }
+    
+    /// Save filter content and metadata to cache
+    fn save_to_cache(&self, cache_dir: &Path, content: &str) -> Result<(), Box<dyn std::error::Error>> {
+        std::fs::create_dir_all(cache_dir)?;
+        
+        // Save filter content
+        let cache_file = cache_dir.join(FILTER_CACHE_FILE);
+        std::fs::write(&cache_file, content)?;
+        
+        // Save metadata
+        self.save_cache_metadata(cache_dir)?;
+        
+        Ok(())
+    }
+    
+    /// Save cache metadata
+    fn save_cache_metadata(&self, cache_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
+        let metadata_file = cache_dir.join(METADATA_FILE);
+        let metadata = CacheMetadata {
+            last_update: SystemTime::now(),
+        };
+        let metadata_json = serde_json::to_string(&metadata)?;
+        std::fs::write(&metadata_file, metadata_json)?;
         Ok(())
     }
     
@@ -106,21 +124,22 @@ impl FilterUpdater {
     
     /// Load filters from cache
     pub fn load_from_cache(&self) -> Result<String, Box<dyn std::error::Error>> {
-        if let Some(ref cache_dir) = self.config.cache_dir {
-            let cache_file = cache_dir.join("filters_cache.txt");
-            if cache_file.exists() {
-                return std::fs::read_to_string(&cache_file)
-                    .map_err(|e| e.into());
-            }
+        let cache_dir = self.config.cache_dir.as_ref()
+            .ok_or("No cache directory configured")?;
+        
+        let cache_file = cache_dir.join(FILTER_CACHE_FILE);
+        if !cache_file.exists() {
+            return Err("Cache file not found".into());
         }
         
-        Err("No cache available".into())
+        std::fs::read_to_string(&cache_file)
+            .map_err(|e| e.into())
     }
     
     /// Load cache metadata
     fn load_cache_metadata(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(ref cache_dir) = self.config.cache_dir {
-            let metadata_file = cache_dir.join("cache_metadata.json");
+            let metadata_file = cache_dir.join(METADATA_FILE);
             if metadata_file.exists() {
                 let metadata_json = std::fs::read_to_string(&metadata_file)?;
                 let metadata: CacheMetadata = serde_json::from_str(&metadata_json)?;
