@@ -10,9 +10,10 @@ pub mod ffi;
 pub mod network;
 pub mod rules;
 pub mod statistics;
+pub mod utils;
 
-pub use filter_engine::FilterEngine;
-pub use statistics::{Statistics, BlockEvent};
+pub use filter_engine::{FilterEngine, BlockDecision};
+pub use statistics::{Statistics, BlockEvent, DomainStats};
 
 /// Core configuration for the ad blocking engine
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -67,22 +68,27 @@ impl AdBlockCore {
     }
     
     /// Check if a URL should be blocked and track statistics
-    pub fn check_url(&mut self, url: &str, size: u64) -> filter_engine::BlockDecision {
+    pub fn check_url(&mut self, url: &str, size: u64) -> BlockDecision {
         let decision = self.engine.should_block(url);
         
         // Extract domain from URL for statistics
-        let domain = extract_domain(url);
+        let domain = utils::extract_domain(url);
         
         // Track statistics
-        if let Ok(mut stats) = self.statistics.lock() {
-            if decision.should_block {
-                stats.record_blocked(&domain, size);
-            } else {
-                stats.record_allowed(&domain, size);
-            }
-        }
+        self.track_decision(&decision, &domain, size);
         
         decision
+    }
+    
+    /// Track the blocking decision in statistics
+    fn track_decision(&self, decision: &BlockDecision, domain: &str, size: u64) {
+        if let Ok(mut stats) = self.statistics.lock() {
+            if decision.should_block {
+                stats.record_blocked(domain, size);
+            } else {
+                stats.record_allowed(domain, size);
+            }
+        }
     }
     
     /// Get a copy of current statistics
@@ -98,20 +104,6 @@ impl AdBlockCore {
     }
 }
 
-/// Extract domain from URL
-fn extract_domain(url: &str) -> String {
-    // Simple domain extraction
-    if let Some(start) = url.find("://") {
-        let after_protocol = &url[start + 3..];
-        if let Some(end) = after_protocol.find('/') {
-            after_protocol[..end].to_string()
-        } else {
-            after_protocol.to_string()
-        }
-    } else {
-        url.to_string()
-    }
-}
 
 #[cfg(test)]
 mod tests {
