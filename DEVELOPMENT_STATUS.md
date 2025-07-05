@@ -90,30 +90,55 @@ All features have comprehensive test coverage:
 - URL matching: < 1ms per URL
 - Memory usage: Optimized with Arc for shared data
 
-## Next Steps
+## Platform-Specific Implementation Progress
 
-### Platform-Specific Implementation
+### ✅ Android Implementation (In Progress)
 
-Now that all core functionality is complete, the next phase is platform-specific implementation:
+1. **JNI Wrapper** (`AdBlockEngine.kt`)
+   - Thread-safe Kotlin wrapper
+   - Native method bindings
+   - Statistics retrieval
+   - Tests: `AdBlockEngineTest.kt`
+   - Status: Complete
 
-1. **FFI Bindings** (`ffi.rs`)
-   - C-compatible API for Android/iOS
-   - Export core functionality
+2. **JNI Bridge** (`adblock_jni.cpp`)
+   - C++ bridge between Kotlin and Rust
+   - Memory management
+   - String conversions
+   - Status: Complete
 
-2. **Android Implementation**
-   - Kotlin wrapper using JNI
-   - VPN Service implementation
-   - UI development
+3. **VPN Service** (`AdBlockVpnService.kt`)
+   - System-wide ad blocking
+   - Packet interception (placeholder)
+   - Foreground service with notification
+   - Tests: `AdBlockVpnServiceTest.kt`
+   - Status: Basic implementation complete
 
-3. **iOS Implementation**
-   - Swift wrapper
-   - Network Extension
-   - Safari Content Blocker
-   - UI development
+4. **UI** (`MainActivity.kt`)
+   - Jetpack Compose UI
+   - VPN toggle switch
+   - Permission handling
+   - Status: Basic implementation complete
 
-4. **Network Interception** (`network.rs`)
-   - Platform-specific network hooks
-   - DNS filtering support
+5. **Build System**
+   - CMake configuration
+   - Cross-compilation script
+   - NDK integration
+   - Status: Complete
+
+### 🔲 iOS Implementation (Pending)
+
+1. **Swift Wrapper**
+   - To be implemented
+   
+2. **Network Extension**
+   - To be implemented
+   
+3. **Safari Content Blocker**
+   - To be implemented
+   
+4. **UI Development**
+   - To be implemented
 
 ### Development Approach
 
