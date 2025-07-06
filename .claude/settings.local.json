@@ -36,7 +36,13 @@
       "Bash(git reset:*)",
       "Bash(cargo clippy:*)",
       "Bash(ls:*)",
-      "Bash(swift build:*)"
+      "Bash(swift build:*)",
+      "Bash(python3:*)",
+      "Bash(gh run download:*)",
+      "Bash(gh workflow run:*)",
+      "Bash(./gradlew:*)",
+      "Bash(gradle:*)",
+      "Bash(xcodebuild:*)"
     ],
     "deny": []
   }
