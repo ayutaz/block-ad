@@ -1,10 +1,10 @@
 //! Filter list updater for automatic updates
-//! 
+//!
 //! Downloads and caches filter lists from remote sources
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
-use std::collections::HashMap;
 
 /// Default cache file names
 const FILTER_CACHE_FILE: &str = "filters_cache.txt";
@@ -37,52 +37,54 @@ impl FilterUpdater {
             last_update: None,
             cached_filters: HashMap::new(),
         };
-        
+
         // Try to load from cache on initialization
         if updater.config.cache_dir.is_some() {
             let _ = updater.load_cache_metadata();
         }
-        
+
         Ok(updater)
     }
-    
+
     /// Check if an update is needed
     pub fn needs_update(&self) -> bool {
         match self.last_update {
             None => true,
-            Some(last) => {
-                match SystemTime::now().duration_since(last) {
-                    Ok(elapsed) => elapsed >= self.config.update_interval,
-                    Err(_) => true,
-                }
-            }
+            Some(last) => match SystemTime::now().duration_since(last) {
+                Ok(elapsed) => elapsed >= self.config.update_interval,
+                Err(_) => true,
+            },
         }
     }
-    
+
     /// Update with provided content (for testing)
     pub fn update_with_content(&mut self, content: &str) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(ref cache_dir) = self.config.cache_dir {
             self.save_to_cache(cache_dir, content)?;
         }
-        
+
         self.last_update = Some(SystemTime::now());
         Ok(())
     }
-    
+
     /// Save filter content and metadata to cache
-    fn save_to_cache(&self, cache_dir: &Path, content: &str) -> Result<(), Box<dyn std::error::Error>> {
+    fn save_to_cache(
+        &self,
+        cache_dir: &Path,
+        content: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         std::fs::create_dir_all(cache_dir)?;
-        
+
         // Save filter content
         let cache_file = cache_dir.join(FILTER_CACHE_FILE);
         std::fs::write(&cache_file, content)?;
-        
+
         // Save metadata
         self.save_cache_metadata(cache_dir)?;
-        
+
         Ok(())
     }
-    
+
     /// Save cache metadata
     fn save_cache_metadata(&self, cache_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
         let metadata_file = cache_dir.join(METADATA_FILE);
@@ -93,7 +95,7 @@ impl FilterUpdater {
         std::fs::write(&metadata_file, metadata_json)?;
         Ok(())
     }
-    
+
     /// Download a filter list from URL (simulated for testing)
     pub fn download_filter_list(&self, url: &str) -> Result<String, Box<dyn std::error::Error>> {
         // In a real implementation, this would use an HTTP client
@@ -101,41 +103,43 @@ impl FilterUpdater {
         if url.contains("invalid") || url.contains("nonexistent") {
             return Err("Failed to download filter list".into());
         }
-        
+
         // Simulate successful download
         Ok("||downloaded-ads.com^".to_string())
     }
-    
+
     /// Merge multiple filter lists
     pub fn merge_filter_lists(&self, lists: Vec<&str>) -> String {
         let mut merged = String::new();
         merged.push_str("! Merged Filter List\n");
         merged.push_str(&format!("! Generated at: {:?}\n\n", SystemTime::now()));
-        
+
         for list in lists {
             merged.push_str(list);
             if !list.ends_with('\n') {
                 merged.push('\n');
             }
         }
-        
+
         merged
     }
-    
+
     /// Load filters from cache
     pub fn load_from_cache(&self) -> Result<String, Box<dyn std::error::Error>> {
-        let cache_dir = self.config.cache_dir.as_ref()
+        let cache_dir = self
+            .config
+            .cache_dir
+            .as_ref()
             .ok_or("No cache directory configured")?;
-        
+
         let cache_file = cache_dir.join(FILTER_CACHE_FILE);
         if !cache_file.exists() {
             return Err("Cache file not found".into());
         }
-        
-        std::fs::read_to_string(&cache_file)
-            .map_err(|e| e.into())
+
+        std::fs::read_to_string(&cache_file).map_err(|e| e.into())
     }
-    
+
     /// Load cache metadata
     fn load_cache_metadata(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(ref cache_dir) = self.config.cache_dir {

@@ -1,5 +1,5 @@
 //! Performance Tests - TDD implementation
-//! 
+//!
 //! Test performance optimization with Aho-Corasick algorithm
 
 use adblock_core::FilterEngine;
@@ -10,20 +10,24 @@ fn should_handle_large_filter_lists_efficiently() {
     // Given: A large filter list with many patterns
     let mut filter_list = String::new();
     filter_list.push_str("! Large Test Filter List\n");
-    
+
     // Add 10000 domain patterns
     for i in 0..10000 {
         filter_list.push_str(&format!("||ad{}.example.com^\n", i));
     }
-    
+
     // When: Creating engine and testing URLs
     let start = Instant::now();
     let engine = FilterEngine::from_filter_list(&filter_list).unwrap();
     let load_time = start.elapsed();
-    
+
     // Then: Loading should be fast (under 1 second)
-    assert!(load_time.as_secs() < 1, "Filter loading took too long: {:?}", load_time);
-    
+    assert!(
+        load_time.as_secs() < 1,
+        "Filter loading took too long: {:?}",
+        load_time
+    );
+
     // And: Matching should be fast (under 1ms per URL)
     let test_urls = vec![
         "https://ad5000.example.com/banner",
@@ -31,14 +35,18 @@ fn should_handle_large_filter_lists_efficiently() {
         "https://ad9999.example.com/tracker",
         "https://safe.com/page",
     ];
-    
+
     for url in test_urls {
         let start = Instant::now();
         engine.should_block(url);
         let match_time = start.elapsed();
-        
-        assert!(match_time.as_micros() < 1000, 
-            "URL matching took too long for {}: {:?}", url, match_time);
+
+        assert!(
+            match_time.as_micros() < 1000,
+            "URL matching took too long for {}: {:?}",
+            url,
+            match_time
+        );
     }
 }
 
@@ -57,9 +65,9 @@ fn should_use_aho_corasick_for_pattern_matching() {
         "advertisement".to_string(),
         "banner".to_string(),
     ];
-    
+
     let engine = FilterEngine::new_with_patterns(patterns);
-    
+
     // When: Testing many URLs
     let test_urls = vec![
         "https://doubleclick.net/ad",
@@ -68,7 +76,7 @@ fn should_use_aho_corasick_for_pattern_matching() {
         "https://normal-site.com/content",
         "https://tracking.company.com/pixel",
     ];
-    
+
     // Then: Should correctly identify patterns efficiently
     assert!(engine.should_block(test_urls[0]).should_block);
     assert!(engine.should_block(test_urls[1]).should_block);
@@ -84,9 +92,9 @@ fn should_optimize_subdomain_matching() {
     for i in 0..1000 {
         patterns.push(format!("||subdomain{}.ads.com^", i));
     }
-    
+
     let engine = FilterEngine::new_with_patterns(patterns);
-    
+
     // When: Checking URLs with subdomains
     let start = Instant::now();
     for i in 0..100 {
@@ -94,10 +102,13 @@ fn should_optimize_subdomain_matching() {
         assert!(engine.should_block(&url).should_block);
     }
     let total_time = start.elapsed();
-    
+
     // Then: Should be fast even with many subdomain checks
-    assert!(total_time.as_millis() < 100, 
-        "Subdomain matching took too long: {:?}", total_time);
+    assert!(
+        total_time.as_millis() < 100,
+        "Subdomain matching took too long: {:?}",
+        total_time
+    );
 }
 
 #[test]
@@ -113,10 +124,10 @@ fn should_batch_compile_patterns() {
 */popup/*
 */overlay/*
 "#;
-    
+
     // When: Creating the engine
     let engine = FilterEngine::from_filter_list(filter_list).unwrap();
-    
+
     // Then: Should have compiled patterns efficiently
     let result = engine.get_pattern_stats();
     assert!(result.compiled_patterns > 0);
@@ -131,16 +142,16 @@ fn should_cache_compiled_patterns() {
         "*/common-tracker/*".to_string(),
         "||another-ad.net^".to_string(),
     ];
-    
+
     // When: Creating multiple engines with same patterns
     let start = Instant::now();
     let _engine1 = FilterEngine::new_with_patterns(patterns.clone());
     let first_creation = start.elapsed();
-    
+
     let start = Instant::now();
     let _engine2 = FilterEngine::new_with_patterns(patterns.clone());
     let second_creation = start.elapsed();
-    
+
     // Then: Second creation should be faster due to caching
     // (This would require actual caching implementation)
     // For now, just ensure both complete successfully

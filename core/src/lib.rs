@@ -5,19 +5,19 @@
 
 #![allow(non_snake_case)]
 
+pub mod ffi;
 pub mod filter_engine;
 pub mod filter_list;
 pub mod filter_updater;
-pub mod ffi;
 pub mod network;
 pub mod rules;
 pub mod statistics;
 pub mod utils;
 
-pub use filter_engine::{FilterEngine, BlockDecision};
+pub use filter_engine::{BlockDecision, FilterEngine};
 pub use filter_list::FilterListLoader;
 pub use filter_updater::{FilterUpdater, UpdateConfig};
-pub use statistics::{Statistics, BlockEvent, DomainStats};
+pub use statistics::{BlockEvent, DomainStats, Statistics};
 
 /// Core configuration for the ad blocking engine
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -52,49 +52,49 @@ impl AdBlockCore {
     /// Create a new instance with the given configuration
     pub fn new(config: Config) -> Result<Self, Box<dyn std::error::Error>> {
         let engine = FilterEngine::new(&config)?;
-        
+
         Ok(Self {
             engine: std::sync::Arc::new(engine),
             statistics: std::sync::Mutex::new(Statistics::new()),
             config,
         })
     }
-    
+
     /// Create a new instance with custom patterns
     pub fn with_patterns(patterns: Vec<String>) -> Result<Self, Box<dyn std::error::Error>> {
         let engine = FilterEngine::new_with_patterns(patterns);
-        
+
         Ok(Self {
             engine: std::sync::Arc::new(engine),
             statistics: std::sync::Mutex::new(Statistics::new()),
             config: Config::default(),
         })
     }
-    
+
     /// Create a new instance from a filter list
     pub fn from_filter_list(filter_list: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let engine = FilterEngine::from_filter_list(filter_list)?;
-        
+
         Ok(Self {
             engine: std::sync::Arc::new(engine),
             statistics: std::sync::Mutex::new(Statistics::new()),
             config: Config::default(),
         })
     }
-    
+
     /// Check if a URL should be blocked and track statistics
     pub fn check_url(&mut self, url: &str, size: u64) -> BlockDecision {
         let decision = self.engine.should_block(url);
-        
+
         // Extract domain from URL for statistics
         let domain = utils::extract_domain(url);
-        
+
         // Track statistics
         self.track_decision(&decision, &domain, size);
-        
+
         decision
     }
-    
+
     /// Track the blocking decision in statistics
     fn track_decision(&self, decision: &BlockDecision, domain: &str, size: u64) {
         if let Ok(mut stats) = self.statistics.lock() {
@@ -105,25 +105,25 @@ impl AdBlockCore {
             }
         }
     }
-    
+
     /// Get a copy of current statistics
     pub fn get_statistics(&self) -> Statistics {
-        self.statistics.lock()
+        self.statistics
+            .lock()
             .map(|stats| stats.clone())
             .unwrap_or_else(|_| Statistics::new())
     }
-    
+
     /// Get a reference to the filter engine
     pub fn engine(&self) -> &FilterEngine {
         &self.engine
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_default_config() {
         let config = Config::default();

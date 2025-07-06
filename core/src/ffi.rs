@@ -1,5 +1,5 @@
 //! FFI (Foreign Function Interface) bindings
-//! 
+//!
 //! C-compatible API for Android/iOS integration
 
 use crate::{AdBlockCore, Config};
@@ -18,10 +18,8 @@ fn c_str_to_rust(ptr: *const c_char) -> Option<&'static str> {
     if ptr.is_null() {
         return None;
     }
-    
-    unsafe {
-        CStr::from_ptr(ptr).to_str().ok()
-    }
+
+    unsafe { CStr::from_ptr(ptr).to_str().ok() }
 }
 
 /// Get engine reference safely
@@ -29,7 +27,7 @@ fn get_engine_ref(engine: *mut c_void) -> Option<&'static AdBlockEngine> {
     if engine.is_null() {
         return None;
     }
-    
+
     Some(unsafe { &*(engine as *mut AdBlockEngine) })
 }
 
@@ -37,7 +35,7 @@ fn get_engine_ref(engine: *mut c_void) -> Option<&'static AdBlockEngine> {
 #[no_mangle]
 pub extern "C" fn adblock_engine_create() -> *mut c_void {
     let config = Config::default();
-    
+
     match AdBlockCore::new(config) {
         Ok(core) => {
             let engine = Box::new(AdBlockEngine {
@@ -55,7 +53,7 @@ pub extern "C" fn adblock_engine_destroy(engine: *mut c_void) {
     if engine.is_null() {
         return;
     }
-    
+
     unsafe {
         let _ = Box::from_raw(engine as *mut AdBlockEngine);
         // Box will be dropped, cleaning up the engine
@@ -69,12 +67,12 @@ pub extern "C" fn adblock_engine_should_block(engine: *mut c_void, url: *const c
         Some(e) => e,
         None => return false,
     };
-    
+
     let url_str = match c_str_to_rust(url) {
         Some(s) => s,
         None => return false,
     };
-    
+
     match engine.core.lock() {
         Ok(mut core) => {
             // We need a dummy size for statistics tracking
@@ -92,12 +90,12 @@ pub extern "C" fn adblock_engine_add_rule(engine: *mut c_void, rule: *const c_ch
         Some(e) => e,
         None => return false,
     };
-    
+
     let _rule_str = match c_str_to_rust(rule) {
         Some(s) => s,
         None => return false,
     };
-    
+
     match engine.core.lock() {
         Ok(core) => {
             // For simplicity, we'll recreate the engine with the new rule
@@ -119,12 +117,12 @@ pub extern "C" fn adblock_engine_load_filter_list(
         Some(e) => e,
         None => return false,
     };
-    
+
     let filter_list_str = match c_str_to_rust(filter_list) {
         Some(s) => s,
         None => return false,
     };
-    
+
     match engine.core.lock() {
         Ok(mut core) => {
             // Create a new AdBlockCore from the filter list
@@ -147,11 +145,11 @@ pub extern "C" fn adblock_engine_get_stats(engine: *mut c_void) -> *mut c_char {
         Some(e) => e,
         None => return ptr::null_mut(),
     };
-    
+
     match engine.core.lock() {
         Ok(core) => {
             let stats = core.get_statistics();
-            
+
             // Create a simple JSON representation
             let json = format!(
                 r#"{{"blocked_count":{},"allowed_count":{},"data_saved":{}}}"#,
@@ -159,7 +157,7 @@ pub extern "C" fn adblock_engine_get_stats(engine: *mut c_void) -> *mut c_char {
                 stats.get_allowed_count(),
                 stats.get_data_saved()
             );
-            
+
             match CString::new(json) {
                 Ok(cstring) => cstring.into_raw(),
                 Err(_) => ptr::null_mut(),
@@ -175,7 +173,7 @@ pub extern "C" fn adblock_free_string(s: *mut c_char) {
     if s.is_null() {
         return;
     }
-    
+
     unsafe {
         let _ = CString::from_raw(s);
         // CString will be dropped, freeing the memory
@@ -186,70 +184,73 @@ pub extern "C" fn adblock_free_string(s: *mut c_char) {
 mod tests {
     use super::*;
     use std::ffi::CString;
-    
+
     #[test]
     fn test_ffi_create_destroy() {
         let engine = adblock_engine_create();
         assert!(!engine.is_null());
         adblock_engine_destroy(engine);
     }
-    
+
     #[test]
     fn test_ffi_null_safety() {
         // Should handle null engine
         assert!(!adblock_engine_should_block(ptr::null_mut(), ptr::null()));
-        
+
         // Should handle null URL
         let engine = adblock_engine_create();
         assert!(!adblock_engine_should_block(engine, ptr::null()));
         adblock_engine_destroy(engine);
     }
-    
+
     #[test]
     fn test_ffi_blocking() {
         let engine = adblock_engine_create();
         assert!(!engine.is_null());
-        
+
         // Load a filter list
         let filter_list = CString::new("||doubleclick.net^").unwrap();
-        assert!(adblock_engine_load_filter_list(engine, filter_list.as_ptr()));
-        
+        assert!(adblock_engine_load_filter_list(
+            engine,
+            filter_list.as_ptr()
+        ));
+
         // Test blocking
         let blocked_url = CString::new("https://doubleclick.net/ads").unwrap();
         assert!(adblock_engine_should_block(engine, blocked_url.as_ptr()));
-        
+
         let safe_url = CString::new("https://example.com").unwrap();
         assert!(!adblock_engine_should_block(engine, safe_url.as_ptr()));
-        
+
         adblock_engine_destroy(engine);
     }
-    
+
     #[test]
     fn test_ffi_statistics() {
         let engine = adblock_engine_create();
-        
+
         // Generate some statistics
         let filter_list = CString::new("||ads.com^").unwrap();
         adblock_engine_load_filter_list(engine, filter_list.as_ptr());
-        
+
         let url1 = CString::new("https://ads.com/banner").unwrap();
         let url2 = CString::new("https://safe.com").unwrap();
-        
+
         adblock_engine_should_block(engine, url1.as_ptr());
         adblock_engine_should_block(engine, url2.as_ptr());
-        
+
         // Get stats
         let stats_ptr = adblock_engine_get_stats(engine);
         assert!(!stats_ptr.is_null());
-        
+
         unsafe {
             let stats_cstr = CStr::from_ptr(stats_ptr);
             let stats_str = stats_cstr.to_str().unwrap();
-            
+
             assert!(stats_str.contains("blocked_count"));
             assert!(stats_str.contains("allowed_count"));
         }
-        
+
         adblock_free_string(stats_ptr);
         adblock_engine_destroy(engine);
     }
