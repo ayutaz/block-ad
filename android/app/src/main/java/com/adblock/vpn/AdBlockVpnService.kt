@@ -43,6 +43,7 @@ class AdBlockVpnService : VpnService() {
         super.onCreate()
         engine = AdBlockEngine()
         createNotificationChannel()
+        loadDefaultFilterLists()
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -98,6 +99,13 @@ class AdBlockVpnService : VpnService() {
             .addRoute("0.0.0.0", 0)
             .addDnsServer("8.8.8.8")
             .addDnsServer("8.8.4.4")
+        
+        // Add allowed apps (exclude ourselves to prevent loops)
+        try {
+            builder.addDisallowedApplication(packageName)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         
         // Establish VPN
         vpnInterface = builder.establish() ?: return
@@ -155,9 +163,44 @@ class AdBlockVpnService : VpnService() {
     }
     
     private fun extractPacketInfo(packet: ByteBuffer): NetworkPacket? {
-        // In a real implementation, parse IP/TCP/UDP headers
-        // For now, return a placeholder
-        return null
+        try {
+            // Skip ethernet header if present
+            if (packet.remaining() < 20) return null
+            
+            // Parse IP header
+            val ipVersion = (packet.get(0).toInt() shr 4) and 0xF
+            if (ipVersion != 4) return null // Only support IPv4 for now
+            
+            // Get protocol (6=TCP, 17=UDP)
+            val protocol = packet.get(9).toInt() and 0xFF
+            if (protocol != 6 && protocol != 17) return null
+            
+            // Get destination IP
+            val destIp = ByteArray(4)
+            packet.position(16)
+            packet.get(destIp)
+            val destAddress = InetAddress.getByAddress(destIp).hostAddress
+            
+            // Get IP header length
+            val ipHeaderLength = ((packet.get(0).toInt() and 0xF) * 4)
+            
+            // Parse TCP/UDP header for destination port
+            packet.position(ipHeaderLength + 2) // Skip source port
+            val destPort = packet.getShort().toInt() and 0xFFFF
+            
+            // Try to resolve hostname (this is simplified)
+            val hostname = destAddress ?: return null
+            
+            return NetworkPacket(
+                host = hostname,
+                port = destPort,
+                size = packet.remaining()
+            )
+        } catch (e: Exception) {
+            return null
+        } finally {
+            packet.rewind()
+        }
     }
     
     private fun createNotificationChannel() {
@@ -182,13 +225,150 @@ class AdBlockVpnService : VpnService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         
+        val stats = getStatistics()
+        val contentText = "ブロック済み: ${stats.blockedCount} | 許可済み: ${stats.allowedCount}"
+        
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("AdBlock VPN")
-            .setContentText("Ad blocking is active")
+            .setContentTitle("AdBlock VPN 保護中")
+            .setContentText(contentText)
             .setSmallIcon(android.R.drawable.ic_lock_lock)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
+    }
+    
+    private fun loadDefaultFilterLists() {
+        // Default filter rules for common ad servers
+        val defaultRules = """
+            ||doubleclick.net^
+            ||googleadservices.com^
+            ||googlesyndication.com^
+            ||google-analytics.com^
+            ||googletagmanager.com^
+            ||facebook.com/tr^
+            ||amazon-adsystem.com^
+            ||adsrvr.org^
+            ||adsymptotic.com^
+            ||adnxs.com^
+            ||adsafeprotected.com^
+            ||smaato.net^
+            ||smartadserver.com^
+            ||scorecardresearch.com^
+            ||outbrain.com^
+            ||taboola.com^
+            ||criteo.com^
+            ||criteo.net^
+            ||casalemedia.com^
+            ||appnexus.com^
+            ||rubiconproject.com^
+            ||pubmatic.com^
+            ||openx.net^
+            ||chartboost.com^
+            ||unity3d.com/services/ads^
+            ||mopub.com^
+            ||inmobi.com^
+            ||flurry.com^
+            ||applovin.com^
+            ||startapp.com^
+            ||supersonicads.com^
+            ||ironsrc.com^
+            ||adcolony.com^
+            ||vungle.com^
+            ||tapjoy.com^
+            ||moatads.com^
+            ||doubleverify.com^
+            ||branch.io^
+            ||adjust.com^
+            ||kochava.com^
+            ||tenjin.io^
+            ||singular.net^
+            ||appsflyer.com^
+            ||crashlytics.com^
+            ||fabric.io^
+            ||firebase.com/analytics^
+            ||mixpanel.com^
+            ||segment.com^
+            ||amplitude.com^
+            ||urbanairship.com^
+            ||braze.com^
+            ||onesignal.com^
+            ||batch.com^
+            ||swrve.com^
+            ||leanplum.com^
+            ||clevertap.com^
+            ||airship.com^
+            ||mparticle.com^
+            ||tune.com^
+            ||kochava.com^
+            ||youappi.com^
+            ||bidmachine.io^
+            ||admost.com^
+            ||bytedance.com/ad^
+            ||tiktok.com/ads^
+            
+            # YouTube specific rules
+            ||youtube.com/api/stats/ads^
+            ||youtube.com/pagead^
+            ||youtube.com/ptracking^
+            ||youtube.com/get_video_info*ad^
+            ||youtube.com/api/stats/qoe^
+            ||googlevideo.com/videoplayback*ctier^
+            ||googlevideo.com/initplayback^
+            ||googlevideo.com/ptracking^
+            ||googlevideo.com/videogoodput^
+            ||youtube.com/youtubei/v1/log_event^
+            ||youtube.com/youtubei/v1/player/ad_break^
+            ||youtube.com/youtubei/v1/next*adplacements^
+            ||youtube.com/youtubei/v1/player*adplacements^
+            ||googleads.g.doubleclick.net/pagead/id^
+            ||googleads.g.doubleclick.net/pagead/interaction^
+            ||static.doubleclick.net/instream/ad_status.js^
+            ||2mdn.net/instream^
+            ||tpc.googlesyndication.com^
+            ||pagead2.googlesyndication.com^
+            ||gstatic.com/cast/sdk/libs/ads^
+            ||imasdk.googleapis.com^
+            ||youtube.com/error_204^
+            ||youtube.com/csi_204^
+            ||youtube.com/generate_204^
+            ||youtube.com/api/stats/watchtime^
+            ||youtube.com/api/stats/delayplay^
+            ||youtube.com/api/stats/playback^
+            ||youtube.com/pcs/activeview^
+            ||youtube.com/pagead/paralleladview^
+            ||youtube.com/pagead/viewthroughconversion^
+            
+            # Mobile app ads
+            */ads/*
+            */adsdk/*
+            */advertise/*
+            */advertisement/*
+            */advertising/*
+            */adserver/*
+            */adservice/*
+            */adnetwork/*
+            */analytics/*
+            */telemetry/*
+            */metrics/*
+            */tracking/*
+            */banner/*
+            */popup/*
+            */popunder/*
+            */interstitial/*
+            */sponsorship/*
+            */promoted/*
+        """.trimIndent()
+        
+        engine.loadFilterList(defaultRules)
+    }
+    
+    fun updateStatistics() {
+        // Update notification with latest statistics
+        if (isRunning.get()) {
+            val notificationManager = getSystemService(NotificationManager::class.java)
+            notificationManager.notify(NOTIFICATION_ID, createNotification())
+        }
     }
 }
 

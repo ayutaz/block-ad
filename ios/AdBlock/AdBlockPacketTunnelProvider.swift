@@ -9,6 +9,7 @@ public class AdBlockPacketTunnelProvider: NEPacketTunnelProvider {
     public override init() throws {
         self.engine = try AdBlockEngine()
         super.init()
+        loadDefaultFilterLists()
     }
     
     /// Load filter rules into the engine
@@ -132,9 +133,153 @@ public class AdBlockPacketTunnelProvider: NEPacketTunnelProvider {
     }
     
     private func extractHost(from packet: Data) -> String? {
-        // In a real implementation, this would parse IP/TCP/UDP headers
-        // to extract the destination hostname or IP address
-        // For now, return nil (simplified for testing)
-        return nil
+        guard packet.count >= 20 else { return nil }
+        
+        return packet.withUnsafeBytes { buffer in
+            // Check IP version (IPv4 only for now)
+            let ipVersion = (buffer[0] >> 4) & 0xF
+            guard ipVersion == 4 else { return nil }
+            
+            // Get protocol (6=TCP, 17=UDP)
+            let proto = buffer[9]
+            guard proto == 6 || proto == 17 else { return nil }
+            
+            // Get destination IP
+            let destIP = Data(bytes: buffer.baseAddress!.advanced(by: 16), count: 4)
+            let ipString = destIP.map { String($0) }.joined(separator: ".")
+            
+            // Get IP header length
+            let ipHeaderLength = Int(buffer[0] & 0xF) * 4
+            
+            // Get destination port
+            guard packet.count >= ipHeaderLength + 4 else { return nil }
+            let portBytes = packet.subdata(in: (ipHeaderLength + 2)..<(ipHeaderLength + 4))
+            let port = UInt16(portBytes[0]) << 8 | UInt16(portBytes[1])
+            
+            return ipString
+        }
+    }
+    
+    private func loadDefaultFilterLists() {
+        let defaultRules = """
+            ||doubleclick.net^
+            ||googleadservices.com^
+            ||googlesyndication.com^
+            ||google-analytics.com^
+            ||googletagmanager.com^
+            ||facebook.com/tr^
+            ||amazon-adsystem.com^
+            ||adsrvr.org^
+            ||adsymptotic.com^
+            ||adnxs.com^
+            ||adsafeprotected.com^
+            ||smaato.net^
+            ||smartadserver.com^
+            ||scorecardresearch.com^
+            ||outbrain.com^
+            ||taboola.com^
+            ||criteo.com^
+            ||criteo.net^
+            ||casalemedia.com^
+            ||appnexus.com^
+            ||rubiconproject.com^
+            ||pubmatic.com^
+            ||openx.net^
+            ||chartboost.com^
+            ||unity3d.com/services/ads^
+            ||mopub.com^
+            ||inmobi.com^
+            ||flurry.com^
+            ||applovin.com^
+            ||startapp.com^
+            ||supersonicads.com^
+            ||ironsrc.com^
+            ||adcolony.com^
+            ||vungle.com^
+            ||tapjoy.com^
+            ||moatads.com^
+            ||doubleverify.com^
+            ||branch.io^
+            ||adjust.com^
+            ||kochava.com^
+            ||tenjin.io^
+            ||singular.net^
+            ||appsflyer.com^
+            ||crashlytics.com^
+            ||fabric.io^
+            ||firebase.com/analytics^
+            ||mixpanel.com^
+            ||segment.com^
+            ||amplitude.com^
+            ||urbanairship.com^
+            ||braze.com^
+            ||onesignal.com^
+            ||batch.com^
+            ||swrve.com^
+            ||leanplum.com^
+            ||clevertap.com^
+            ||airship.com^
+            ||mparticle.com^
+            ||tune.com^
+            ||youappi.com^
+            ||bidmachine.io^
+            ||admost.com^
+            ||bytedance.com/ad^
+            ||tiktok.com/ads^
+            
+            # YouTube specific rules
+            ||youtube.com/api/stats/ads^
+            ||youtube.com/pagead^
+            ||youtube.com/ptracking^
+            ||youtube.com/get_video_info*ad^
+            ||youtube.com/api/stats/qoe^
+            ||googlevideo.com/videoplayback*ctier^
+            ||googlevideo.com/initplayback^
+            ||googlevideo.com/ptracking^
+            ||googlevideo.com/videogoodput^
+            ||youtube.com/youtubei/v1/log_event^
+            ||youtube.com/youtubei/v1/player/ad_break^
+            ||youtube.com/youtubei/v1/next*adplacements^
+            ||youtube.com/youtubei/v1/player*adplacements^
+            ||googleads.g.doubleclick.net/pagead/id^
+            ||googleads.g.doubleclick.net/pagead/interaction^
+            ||static.doubleclick.net/instream/ad_status.js^
+            ||2mdn.net/instream^
+            ||tpc.googlesyndication.com^
+            ||pagead2.googlesyndication.com^
+            ||gstatic.com/cast/sdk/libs/ads^
+            ||imasdk.googleapis.com^
+            ||youtube.com/error_204^
+            ||youtube.com/csi_204^
+            ||youtube.com/generate_204^
+            ||youtube.com/api/stats/watchtime^
+            ||youtube.com/api/stats/delayplay^
+            ||youtube.com/api/stats/playback^
+            ||youtube.com/pcs/activeview^
+            ||youtube.com/pagead/paralleladview^
+            ||youtube.com/pagead/viewthroughconversion^
+            
+            # Mobile app ads
+            */ads/*
+            */adsdk/*
+            */advertise/*
+            */advertisement/*
+            */advertising/*
+            */adserver/*
+            */adservice/*
+            */adnetwork/*
+            */analytics/*
+            */telemetry/*
+            */metrics/*
+            */tracking/*
+            */banner/*
+            */popup/*
+            */popunder/*
+            */interstitial/*
+            */sponsorship/*
+            */promoted/*
+        """
+        
+        loadFilterRules(defaultRules)
     }
 }
