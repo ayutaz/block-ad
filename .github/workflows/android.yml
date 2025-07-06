@@ -67,9 +67,11 @@ jobs:
     - name: Setup Gradle
       run: |
         cd android
+        # Download gradle wrapper if not present
         if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
-          touch settings.gradle
-          gradle wrapper --gradle-version=8.0.2 || true
+          echo "Downloading Gradle wrapper..."
+          mkdir -p gradle/wrapper
+          curl -L https://github.com/gradle/gradle/raw/v8.0.2/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
         fi
         chmod +x gradlew || true
     
@@ -100,18 +102,27 @@ jobs:
         retention-days: 7
     
     - name: Create APK Release
-      if: github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: android-latest
-        name: Android Latest Build
+        tag_name: android-${{ github.run_number }}
+        name: Android Build #${{ github.run_number }}
         body: |
-          Latest Android APK build from main branch
+          Automated Android APK build from main branch
           
-          - Debug APK: For testing purposes
-          - Release APK: Unsigned release build
+          **Commit:** ${{ github.sha }}
+          **Date:** ${{ github.event.head_commit.timestamp }}
           
-          Note: Release APK needs to be signed before installation
+          ## Downloads
+          - 📱 **Debug APK**: For testing purposes (can be installed directly)
+          - 📦 **Release APK**: Unsigned release build (needs signing)
+          
+          ## Installation
+          1. Enable "Unknown Sources" in Android settings
+          2. Download the debug APK
+          3. Open the downloaded file to install
+          
+          ⚠️ **Note**: Release APK needs to be signed before installation
         files: |
           android/app/build/outputs/apk/debug/app-debug.apk
           android/app/build/outputs/apk/release/app-release-unsigned.apk
@@ -159,9 +170,11 @@ jobs:
     - name: Setup Gradle for instrumented tests
       run: |
         cd android
+        # Download gradle wrapper if not present
         if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
-          touch settings.gradle
-          gradle wrapper --gradle-version=8.0.2 || true
+          echo "Downloading Gradle wrapper..."
+          mkdir -p gradle/wrapper
+          curl -L https://github.com/gradle/gradle/raw/v8.0.2/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
         fi
         chmod +x gradlew || true
     

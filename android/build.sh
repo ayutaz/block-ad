@@ -6,6 +6,19 @@ set -e
 
 echo "Building AdBlock for Android..."
 
+# Setup Gradle wrapper if needed
+if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
+    echo "Setting up Gradle wrapper..."
+    gradle wrapper --gradle-version=8.0.2 || {
+        echo "Gradle not found, downloading wrapper manually..."
+        mkdir -p gradle/wrapper
+        curl -L https://services.gradle.org/distributions/gradle-8.0.2-bin.zip -o gradle-8.0.2-bin.zip
+        unzip -q gradle-8.0.2-bin.zip
+        ./gradle-8.0.2/bin/gradle wrapper --gradle-version=8.0.2
+        rm -rf gradle-8.0.2*
+    }
+fi
+
 # Build Rust library for Android targets
 echo "Building Rust core library for Android..."
 cd ../core
