@@ -75,6 +75,10 @@ jobs:
     - name: Build iOS app
       run: |
         cd ios
+        # Ensure FFI bindings are included in the build
+        echo "Checking for FFI files..."
+        ls -la AdBlock/FFI.swift AdBlock/AdBlock-Bridging-Header.h || true
+        
         # List available destinations for debugging
         xcodebuild -showdestinations -scheme AdBlock || true
         
