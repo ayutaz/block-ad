@@ -186,7 +186,7 @@ impl FilterEngine {
                 if self.matches_exception_pattern(url, pattern) {
                     return BlockDecision {
                         should_block: false,
-                        reason: Some(format!("Whitelisted by exception: {}", pattern)),
+                        reason: Some(format!("Whitelisted by exception: {pattern}")),
                     };
                 }
             }
@@ -207,7 +207,7 @@ impl FilterEngine {
                     if self.matches_wildcard_pattern(url, pattern) {
                         return BlockDecision {
                             should_block: true,
-                            reason: Some(format!("Matched pattern: {}", pattern)),
+                            reason: Some(format!("Matched pattern: {pattern}")),
                         };
                     }
                 }
@@ -259,7 +259,7 @@ impl FilterEngine {
             let url_host = url_after_protocol.split('/').next().unwrap_or("");
 
             // Exact match or subdomain match
-            url_host == domain || url_host.ends_with(&format!(".{}", domain))
+            url_host == domain || url_host.ends_with(&format!(".{domain}"))
         } else {
             false
         }
