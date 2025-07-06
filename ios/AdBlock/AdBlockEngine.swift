@@ -47,16 +47,28 @@ public final class AdBlockEngine {
     /// - Returns: Statistics object with blocking metrics
     public func getStatistics() -> Statistics {
         return queue.sync {
-            var blocked: UInt64 = 0
-            var allowed: UInt64 = 0
-            var saved: UInt64 = 0
+            guard let statsPtr = adblock_engine_get_stats(engineHandle) else {
+                return Statistics(blockedCount: 0, allowedCount: 0, dataSaved: 0)
+            }
             
-            adblock_engine_get_stats(engineHandle, &blocked, &allowed, &saved)
+            defer {
+                adblock_free_string(statsPtr)
+            }
+            
+            let statsString = String(cString: statsPtr)
+            
+            guard let data = statsString.data(using: .utf8),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let blockedCount = json["blocked_count"] as? Int,
+                  let allowedCount = json["allowed_count"] as? Int,
+                  let dataSaved = json["data_saved"] as? Int else {
+                return Statistics(blockedCount: 0, allowedCount: 0, dataSaved: 0)
+            }
             
             return Statistics(
-                blockedCount: Int(blocked),
-                allowedCount: Int(allowed),
-                dataSaved: Int(saved)
+                blockedCount: blockedCount,
+                allowedCount: allowedCount,
+                dataSaved: dataSaved
             )
         }
     }

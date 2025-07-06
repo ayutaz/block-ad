@@ -9,7 +9,11 @@ class AdBlockEngineTests: XCTestCase {
     
     override func setUp() {
         super.setUp()
-        engine = try! AdBlockEngine()
+        do {
+            engine = try AdBlockEngine()
+        } catch {
+            XCTFail("Failed to create AdBlockEngine: \(error)")
+        }
     }
     
     override func tearDown() {
@@ -19,13 +23,17 @@ class AdBlockEngineTests: XCTestCase {
     
     func testEngineCreationAndDestruction() {
         // Given: A new engine instance
-        let newEngine = try! AdBlockEngine()
-        
-        // Then: Engine should be initialized
-        XCTAssertTrue(newEngine.isInitialized)
-        
-        // When: Engine goes out of scope, it should be cleaned up
-        // (handled by deinit)
+        do {
+            let newEngine = try AdBlockEngine()
+            
+            // Then: Engine should be initialized
+            XCTAssertTrue(newEngine.isInitialized)
+            
+            // When: Engine goes out of scope, it should be cleaned up
+            // (handled by deinit)
+        } catch {
+            XCTFail("Failed to create AdBlockEngine: \(error)")
+        }
     }
     
     func testURLBlocking() {

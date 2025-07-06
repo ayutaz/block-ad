@@ -10,7 +10,7 @@ class NetworkExtensionTests: XCTestCase {
     
     override func setUp() {
         super.setUp()
-        provider = try! AdBlockPacketTunnelProvider()
+        provider = AdBlockPacketTunnelProvider()
     }
     
     override func tearDown() {
@@ -68,20 +68,3 @@ class NetworkExtensionTests: XCTestCase {
     }
 }
 
-/// Mock packet for testing
-struct MockPacket {
-    let host: String
-    let port: Int
-}
-
-/// Statistics struct
-struct Statistics {
-    let blockedCount: Int
-    let allowedCount: Int
-    let dataSaved: Int
-    
-    var blockRate: Double {
-        let total = blockedCount + allowedCount
-        return total > 0 ? Double(blockedCount) / Double(total) : 0.0
-    }
-}

@@ -3,25 +3,32 @@ import NetworkExtension
 /// Packet tunnel provider for Network Extension
 public class AdBlockPacketTunnelProvider: NEPacketTunnelProvider {
     
-    public private(set) var engine: AdBlockEngine!
+    public private(set) var engine: AdBlockEngine?
     private let packetQueue = DispatchQueue(label: "com.adblock.packets", attributes: .concurrent)
     
-    public override init() throws {
-        self.engine = try AdBlockEngine()
+    public override init() {
         super.init()
-        loadDefaultFilterLists()
+        
+        do {
+            self.engine = try AdBlockEngine()
+            loadDefaultFilterLists()
+        } catch {
+            // Log the error - in production, you'd want proper error handling here
+            NSLog("Failed to initialize AdBlockEngine: \(error)")
+        }
     }
     
     /// Load filter rules into the engine
     /// - Parameter rules: Filter rules in EasyList format
     public func loadFilterRules(_ rules: String) {
-        _ = engine.loadFilterList(rules)
+        _ = engine?.loadFilterList(rules)
     }
     
     /// Check if a packet should be blocked based on its destination
     /// - Parameter packet: Mock packet with host and port information
     /// - Returns: true if the packet should be blocked
     public func shouldBlockPacket(_ packet: MockPacket) -> Bool {
+        guard let engine = engine else { return false }
         let url = "https://\(packet.host):\(packet.port)"
         return engine.shouldBlock(url)
     }
@@ -29,7 +36,7 @@ public class AdBlockPacketTunnelProvider: NEPacketTunnelProvider {
     /// Get current statistics
     /// - Returns: Statistics object with blocking metrics
     public func getStatistics() -> Statistics {
-        return engine.getStatistics()
+        return engine?.getStatistics() ?? Statistics(blockedCount: 0, allowedCount: 0, dataSaved: 0)
     }
     
     /// Create tunnel configuration
@@ -76,7 +83,7 @@ public class AdBlockPacketTunnelProvider: NEPacketTunnelProvider {
         // Handle messages from the app
         if let message = String(data: messageData, encoding: .utf8) {
             if message == "stats" {
-                let stats = engine.getStatistics()
+                let stats = getStatistics()
                 let response = """
                 {
                     "blocked": \(stats.blockedCount),

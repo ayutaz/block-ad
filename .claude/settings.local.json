@@ -35,7 +35,8 @@
       "Bash(gh run list:*)",
       "Bash(git reset:*)",
       "Bash(cargo clippy:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(swift build:*)"
     ],
     "deny": []
   }
