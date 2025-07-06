@@ -1,0 +1,134 @@
+name: CI Monitor and Auto-fix
+
+on:
+  workflow_run:
+    workflows: ["Android CI", "iOS CI", "Rust Core CI"]
+    types:
+      - completed
+  schedule:
+    # Run every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-and-fix:
+    name: Monitor CI Health
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'failure' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Check workflow statuses
+      id: check
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const owner = context.repo.owner;
+          const repo = context.repo.repo;
+          
+          // Get recent workflow runs
+          const runs = await github.rest.actions.listWorkflowRunsForRepo({
+            owner,
+            repo,
+            per_page: 20
+          });
+          
+          // Count failures
+          const failures = runs.data.workflow_runs.filter(run => 
+            run.conclusion === 'failure' && 
+            run.created_at > new Date(Date.now() - 24*60*60*1000).toISOString()
+          );
+          
+          console.log(`Found ${failures.length} failures in last 24 hours`);
+          
+          // Check specific workflows
+          const workflows = ['Android CI', 'iOS CI', 'Rust Core CI'];
+          const workflowStatus = {};
+          
+          for (const workflowName of workflows) {
+            const workflowRuns = runs.data.workflow_runs.filter(run => run.name === workflowName);
+            if (workflowRuns.length > 0) {
+              workflowStatus[workflowName] = workflowRuns[0].conclusion;
+            }
+          }
+          
+          return {
+            failureCount: failures.length,
+            workflowStatus: JSON.stringify(workflowStatus)
+          };
+    
+    - name: Create issue if CI is failing
+      if: steps.check.outputs.failureCount > 2
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const owner = context.repo.owner;
+          const repo = context.repo.repo;
+          
+          // Check if issue already exists
+          const issues = await github.rest.issues.listForRepo({
+            owner,
+            repo,
+            labels: 'ci-failure',
+            state: 'open'
+          });
+          
+          if (issues.data.length === 0) {
+            await github.rest.issues.create({
+              owner,
+              repo,
+              title: '🚨 CI Failures Detected',
+              body: `Multiple CI failures have been detected in the last 24 hours.
+              
+              **Workflow Status:**
+              ${steps.check.outputs.workflowStatus}
+              
+              Please check the [Actions tab](https://github.com/${owner}/${repo}/actions) for details.
+              
+              This issue was automatically created by the CI monitoring system.`,
+              labels: ['ci-failure', 'automated']
+            });
+          }
+    
+    - name: Auto-fix common issues
+      if: github.event.workflow_run.conclusion == 'failure'
+      run: |
+        # Common fixes for CI failures
+        
+        # 1. Ensure gradle wrapper exists
+        if [ -d "android" ] && [ ! -f "android/gradle/wrapper/gradle-wrapper.jar" ]; then
+          echo "Fixing missing gradle wrapper..."
+          mkdir -p android/gradle/wrapper
+          curl -L https://github.com/gradle/gradle/raw/v8.0.2/gradle/wrapper/gradle-wrapper.jar -o android/gradle/wrapper/gradle-wrapper.jar
+          git add android/gradle/wrapper/gradle-wrapper.jar
+          git commit -m "fix: add missing gradle wrapper jar" || true
+        fi
+        
+        # 2. Fix file permissions
+        if [ -f "android/gradlew" ]; then
+          chmod +x android/gradlew
+          git add android/gradlew
+          git commit -m "fix: set executable permission on gradlew" || true
+        fi
+        
+        if [ -f "android/build.sh" ]; then
+          chmod +x android/build.sh
+          git add android/build.sh
+          git commit -m "fix: set executable permission on build.sh" || true
+        fi
+        
+        if [ -f "ios/build.sh" ]; then
+          chmod +x ios/build.sh
+          git add ios/build.sh
+          git commit -m "fix: set executable permission on ios build.sh" || true
+        fi
+        
+        # Push if there are changes
+        if git diff --cached --quiet; then
+          echo "No auto-fixable issues found"
+        else
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git push
+        fi
