@@ -20,19 +20,10 @@ android {
             abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
         }
         
-        externalNativeBuild {
-            cmake {
-                cppFlags ''
-            }
-        }
+        // Removed CMake configuration - using pre-built libraries from cargo-ndk
     }
     
-    externalNativeBuild {
-        cmake {
-            path file('CMakeLists.txt')
-            version '3.22.1'
-        }
-    }
+    // Removed externalNativeBuild - libraries are pre-built by cargo-ndk
 
     buildTypes {
         release {

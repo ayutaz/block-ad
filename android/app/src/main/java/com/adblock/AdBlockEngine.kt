@@ -87,7 +87,7 @@ class AdBlockEngine {
     }
     
     companion object {
-        private const val LIBRARY_NAME = "adblock_jni"
+        private const val LIBRARY_NAME = "adblock_core"
         
         init {
             try {
