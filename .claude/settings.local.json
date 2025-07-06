@@ -20,7 +20,8 @@
       "Bash(rustup target:*)",
       "Bash(cargo build:*)",
       "Bash(cargo install:*)",
-      "Bash(cargo ndk:*)"
+      "Bash(cargo ndk:*)",
+      "Bash(rg:*)"
     ],
     "deny": []
   }

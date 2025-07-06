@@ -4,11 +4,12 @@ import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
-import org.mockito.kotlin.*
+import java.io.File
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /**
  * Unit tests for AdBlockEngine JNI wrapper
- * TDD Red phase - these tests will fail initially
  */
 class AdBlockEngineTest {
     
@@ -16,7 +17,8 @@ class AdBlockEngineTest {
     
     @Before
     fun setUp() {
-        // This will fail initially as AdBlockEngine doesn't exist yet
+        // Load native library for tests
+        System.loadLibrary("adblock_core")
         engine = AdBlockEngine()
     }
     
@@ -96,23 +98,26 @@ class AdBlockEngineTest {
         engine.loadFilterList("||ads.com^")
         
         // When: Multiple threads access the engine
+        val threadCount = 10
+        val latch = CountDownLatch(threadCount)
         val results = mutableListOf<Boolean>()
-        val threads = (0..10).map { i ->
+        
+        repeat(threadCount) { i ->
             Thread {
                 val result = engine.shouldBlock("https://ads.com/thread$i")
                 synchronized(results) {
                     results.add(result)
                 }
-            }
+                latch.countDown()
+            }.start()
         }
         
-        // Start all threads
-        threads.forEach { it.start() }
-        threads.forEach { it.join() }
+        // Wait for all threads to complete
+        assertTrue("Threads did not complete in time", latch.await(5, TimeUnit.SECONDS))
         
         // Then: All results should be consistent
-        assertEquals(11, results.size)
-        assertTrue(results.all { it })
+        assertEquals(threadCount, results.size)
+        assertTrue("All URLs should be blocked", results.all { it })
     }
     
     @Test
@@ -127,20 +132,4 @@ class AdBlockEngineTest {
         // Then: New rules should be active
         assertTrue(engine.shouldBlock("https://newads.com"))
     }
-}
-
-/**
- * Data class for statistics
- */
-data class Statistics(
-    val blockedCount: Long,
-    val allowedCount: Long,
-    val dataSaved: Long
-) {
-    val blockRate: Double
-        get() = if (blockedCount + allowedCount > 0) {
-            blockedCount.toDouble() / (blockedCount + allowedCount)
-        } else {
-            0.0
-        }
 }

@@ -9,10 +9,11 @@ import org.junit.runner.RunWith
 import org.mockito.Mock
 import org.mockito.junit.MockitoJUnitRunner
 import org.mockito.kotlin.*
+import com.adblock.AdBlockEngine
+import com.adblock.Statistics
 
 /**
  * Unit tests for AdBlockVpnService
- * TDD Red phase
  */
 @RunWith(MockitoJUnitRunner::class)
 class AdBlockVpnServiceTest {
@@ -99,12 +100,3 @@ class AdBlockVpnServiceTest {
         return NetworkPacket(host, port, 1024)
     }
 }
-
-/**
- * Mock network packet class
- */
-data class NetworkPacket(
-    val host: String,
-    val port: Int,
-    val size: Int
-)
