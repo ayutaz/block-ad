@@ -60,7 +60,7 @@ class AdBlockEngine {
         val allowedCount = extractJsonLong(json, "allowed_count") ?: 0
         val dataSaved = extractJsonLong(json, "data_saved") ?: 0
         
-        return Statistics(blockedCount, allowedCount, dataSaved)
+        return Statistics(blockedCount.toInt(), allowedCount.toInt(), dataSaved.toInt())
     }
     
     /**
@@ -115,18 +115,3 @@ class AdBlockEngine {
     private external fun nativeGetStats(handle: Long): String?
 }
 
-/**
- * Statistics data class
- */
-data class Statistics(
-    val blockedCount: Long,
-    val allowedCount: Long,
-    val dataSaved: Long
-) {
-    val blockRate: Double
-        get() = if (blockedCount + allowedCount > 0) {
-            blockedCount.toDouble() / (blockedCount + allowedCount)
-        } else {
-            0.0
-        }
-}
