@@ -88,10 +88,7 @@ impl Statistics {
         self.data_saved += size;
 
         // Update domain stats
-        let stats = self
-            .domain_stats
-            .entry(domain.to_string())
-            .or_default();
+        let stats = self.domain_stats.entry(domain.to_string()).or_default();
         stats.count += 1;
         stats.data_saved += size;
 

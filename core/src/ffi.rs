@@ -168,7 +168,7 @@ pub extern "C" fn adblock_engine_get_stats(engine: *mut c_void) -> *mut c_char {
 }
 
 /// Free a string allocated by the library
-/// 
+///
 /// # Safety
 /// The pointer must have been returned by a function from this library
 /// and must not have been freed already.
