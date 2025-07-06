@@ -74,8 +74,13 @@ jobs:
     - name: Build iOS app
       run: |
         cd ios
+        # List available destinations for debugging
+        xcodebuild -showdestinations -scheme AdBlock || true
+        
+        # Build with explicit SDK and destination
         xcodebuild build \
           -scheme AdBlock \
+          -sdk iphonesimulator \
           -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' \
           -derivedDataPath build \
           CODE_SIGN_IDENTITY="" \
@@ -87,6 +92,7 @@ jobs:
         cd ios
         xcodebuild test \
           -scheme AdBlock \
+          -sdk iphonesimulator \
           -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' \
           -derivedDataPath build \
           -enableCodeCoverage YES
