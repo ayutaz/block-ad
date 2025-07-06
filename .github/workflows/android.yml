@@ -68,6 +68,10 @@ jobs:
         cargo ndk -t armeabi-v7a -o ../android/app/src/main/jniLibs build --release
         cargo ndk -t x86_64 -o ../android/app/src/main/jniLibs build --release
         cargo ndk -t x86 -o ../android/app/src/main/jniLibs build --release
+        
+        # List generated files for debugging
+        echo "Generated JNI libraries:"
+        ls -la ../android/app/src/main/jniLibs/*/
     
     - name: Setup Gradle
       run: |

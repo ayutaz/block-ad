@@ -14,7 +14,7 @@ add_library(adblock_jni SHARED
 # Link libraries
 target_link_libraries(adblock_jni
     ${log-lib}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/jniLibs/${ANDROID_ABI}/libadblock_core.a
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/jniLibs/${ANDROID_ABI}/libadblock_core.so
 )
 
 # Include directories
