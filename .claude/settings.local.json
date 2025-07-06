@@ -42,7 +42,8 @@
       "Bash(gh workflow run:*)",
       "Bash(./gradlew:*)",
       "Bash(gradle:*)",
-      "Bash(xcodebuild:*)"
+      "Bash(xcodebuild:*)",
+      "Bash(unzip:*)"
     ],
     "deny": []
   }
