@@ -42,7 +42,7 @@ example.com##.sidebar-ad
     let rules = loader.parse_filter_list(filter_list).unwrap();
 
     // Then: Rules should be correctly parsed
-    assert!(rules.len() > 0);
+    assert!(!rules.is_empty());
     assert!(rules.iter().any(|r| r.contains("doubleclick.net")));
     assert!(rules.iter().any(|r| r.contains("/ads/*")));
 }

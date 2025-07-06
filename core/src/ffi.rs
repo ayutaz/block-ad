@@ -253,7 +253,9 @@ mod tests {
             assert!(stats_str.contains("allowed_count"));
         }
 
-        adblock_free_string(stats_ptr);
+        unsafe {
+            adblock_free_string(stats_ptr);
+        }
         adblock_engine_destroy(engine);
     }
 }

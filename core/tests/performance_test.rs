@@ -69,7 +69,7 @@ fn should_use_aho_corasick_for_pattern_matching() {
     let engine = FilterEngine::new_with_patterns(patterns);
 
     // When: Testing many URLs
-    let test_urls = vec![
+    let test_urls = [
         "https://doubleclick.net/ad",
         "https://analytics.google.com/track",
         "https://facebook.com/tr?id=123",
