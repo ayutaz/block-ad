@@ -81,10 +81,14 @@ impl FilterEngine {
 
     /// Parse a raw rule string into a FilterRule
     fn parse_rule(raw_rule: String) -> FilterRule {
-        if raw_rule.starts_with("@@") {
-            FilterRule::Exception(raw_rule[2..].to_string())
-        } else if raw_rule.starts_with("||") && raw_rule.ends_with("^") {
-            FilterRule::SubdomainPattern(raw_rule[2..raw_rule.len() - 1].to_string())
+        if let Some(stripped) = raw_rule.strip_prefix("@@") {
+            FilterRule::Exception(stripped.to_string())
+        } else if let Some(stripped) = raw_rule.strip_prefix("||") {
+            if let Some(domain) = stripped.strip_suffix('^') {
+                FilterRule::SubdomainPattern(domain.to_string())
+            } else {
+                FilterRule::Pattern(raw_rule)
+            }
         } else if raw_rule.contains('*') || (raw_rule.starts_with("/") && raw_rule.ends_with("/*"))
         {
             FilterRule::Pattern(raw_rule)
@@ -304,8 +308,8 @@ impl FilterEngine {
     /// Check if URL matches an exception pattern
     fn matches_exception_pattern(&self, url: &str, pattern: &str) -> bool {
         // Handle subdomain patterns (||domain)
-        if pattern.starts_with("||") {
-            return self.matches_subdomain_pattern(url, &pattern[2..]);
+        if let Some(pattern_without_prefix) = pattern.strip_prefix("||") {
+            return self.matches_subdomain_pattern(url, pattern_without_prefix);
         }
 
         // Handle wildcard patterns
@@ -324,9 +328,8 @@ impl FilterEngine {
 
     /// Match subdomain patterns like ||domain.com or ||domain.com/path/*
     fn matches_subdomain_pattern(&self, url: &str, pattern_without_prefix: &str) -> bool {
-        if pattern_without_prefix.ends_with("^") {
+        if let Some(domain) = pattern_without_prefix.strip_suffix('^') {
             // Pattern like ||domain.com^
-            let domain = &pattern_without_prefix[..pattern_without_prefix.len() - 1];
             self.matches_subdomain(url, domain)
         } else if let Some(slash_pos) = pattern_without_prefix.find('/') {
             // Pattern like ||domain.com/path/*

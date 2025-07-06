@@ -36,7 +36,7 @@ impl Default for StatisticsConfig {
 }
 
 /// Statistics tracker for the ad blocker
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Statistics {
     blocked_count: u64,
     allowed_count: u64,
@@ -51,19 +51,6 @@ pub struct Statistics {
 struct DomainStatsInternal {
     count: u64,
     data_saved: u64,
-}
-
-impl Default for Statistics {
-    fn default() -> Self {
-        Self {
-            blocked_count: 0,
-            allowed_count: 0,
-            data_saved: 0,
-            domain_stats: HashMap::new(),
-            recent_events: Vec::new(),
-            config: StatisticsConfig::default(),
-        }
-    }
 }
 
 impl Statistics {
@@ -104,7 +91,7 @@ impl Statistics {
         let stats = self
             .domain_stats
             .entry(domain.to_string())
-            .or_insert_with(DomainStatsInternal::default);
+            .or_default();
         stats.count += 1;
         stats.data_saved += size;
 

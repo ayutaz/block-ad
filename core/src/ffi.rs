@@ -168,16 +168,18 @@ pub extern "C" fn adblock_engine_get_stats(engine: *mut c_void) -> *mut c_char {
 }
 
 /// Free a string allocated by the library
+/// 
+/// # Safety
+/// The pointer must have been returned by a function from this library
+/// and must not have been freed already.
 #[no_mangle]
-pub extern "C" fn adblock_free_string(s: *mut c_char) {
+pub unsafe extern "C" fn adblock_free_string(s: *mut c_char) {
     if s.is_null() {
         return;
     }
 
-    unsafe {
-        let _ = CString::from_raw(s);
-        // CString will be dropped, freeing the memory
-    }
+    let _ = CString::from_raw(s);
+    // CString will be dropped, freeing the memory
 }
 
 #[cfg(test)]

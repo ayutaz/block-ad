@@ -71,8 +71,8 @@ impl FilterListLoader {
             let trimmed = line.trim();
 
             // Global CSS rules
-            if trimmed.starts_with("##") {
-                css_rules.push(trimmed[2..].to_string());
+            if let Some(selector) = trimmed.strip_prefix("##") {
+                css_rules.push(selector.to_string());
             }
             // Domain-specific CSS rules
             else if let Some(separator_pos) = trimmed.find("##") {
@@ -80,9 +80,8 @@ impl FilterListLoader {
                 let selector = &trimmed[separator_pos + 2..];
 
                 // Check if rule applies to this domain
-                if domains_part.starts_with('~') {
+                if let Some(excluded_domain) = domains_part.strip_prefix('~') {
                     // Exclusion rule
-                    let excluded_domain = &domains_part[1..];
                     if excluded_domain != domain {
                         css_rules.push(selector.to_string());
                     }

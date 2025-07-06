@@ -32,7 +32,10 @@
       "Bash(gh run view:*)",
       "Bash(cargo fmt:*)",
       "Bash(git pull:*)",
-      "Bash(gh run list:*)"
+      "Bash(gh run list:*)",
+      "Bash(git reset:*)",
+      "Bash(cargo clippy:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }
