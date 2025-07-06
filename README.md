@@ -125,16 +125,19 @@ cd ios && xcodebuild test -scheme AdBlock
 
 ## 📚 ドキュメント
 
-### 設計ドキュメント
-- [技術設計書](./TECHNICAL_DESIGN.md) - 詳細な技術仕様
-- [アーキテクチャ設計](./ARCHITECTURE.md) - システム構成
-- [API設計](./API_DESIGN.md) - インターフェース仕様
-- [実装ガイド](./IMPLEMENTATION_GUIDE.md) - 開発手順
+### 開発ドキュメント
+- [開発状況](./docs/development/STATUS.md) - 現在の実装状況
+- [実装ガイド](./docs/development/IMPLEMENTATION_GUIDE.md) - 開発手順
+- [TDDガイド](./docs/development/TDD_GUIDE.md) - テスト駆動開発の手順
 
-### 仕様・テストドキュメント
-- [アプリ仕様書](./SPECIFICATION.md) - 機能仕様と要件定義
-- [テスト項目書](./TEST_SPECIFICATION.md) - テスト計画と項目
-- [TDDガイド](./TDD_GUIDE.md) - テスト駆動開発の手順
+### 設計ドキュメント
+- [アプリ仕様書](./docs/design/SPECIFICATION.md) - 機能仕様と要件定義
+- [技術設計書](./docs/design/TECHNICAL_DESIGN.md) - 詳細な技術仕様
+- [アーキテクチャ設計](./docs/design/ARCHITECTURE.md) - システム構成
+- [API設計](./docs/design/API_DESIGN.md) - インターフェース仕様
+
+### テストドキュメント
+- [テスト仕様書](./docs/testing/TEST_SPECIFICATION.md) - テスト計画と項目
 
 ## 🏆 謝辞
 

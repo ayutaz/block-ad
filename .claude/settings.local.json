@@ -23,7 +23,9 @@
       "Bash(cargo ndk:*)",
       "Bash(rg:*)",
       "Bash(git remote add:*)",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Bash(git push:*)",
+      "Bash(# Remove empty or duplicate directories\nrm -rf ios/AdBlockUITests ios/AdBlocker\nrm -rf shared/rules  # Empty directory\nrm -f build_android.sh  # Duplicate of android/build.sh)"
     ],
     "deny": []
   }
