@@ -123,7 +123,7 @@ public class AdBlockPacketTunnelProvider: NEPacketTunnelProvider {
                 }
                 
                 // Add to allowed packets
-                allowedPackets.append((packet, NSNumber(value: protocols[index])))
+                allowedPackets.append((packet, protocols[index]))
             }
             
             // Write allowed packets
