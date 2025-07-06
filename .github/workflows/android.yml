@@ -1,0 +1,138 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'android/**'
+      - 'core/**'
+      - '.github/workflows/android.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'android/**'
+      - 'core/**'
+
+jobs:
+  build:
+    name: Build and Test Android
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+    
+    - name: Install cargo-ndk
+      run: cargo install cargo-ndk
+    
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
+    
+    - name: Cache Gradle
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+    
+    - name: Cache Rust build
+      uses: actions/cache@v3
+      with:
+        path: |
+          core/target
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: ${{ runner.os }}-rust-android-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Build Rust libraries
+      run: |
+        cd core
+        cargo ndk -t arm64-v8a -o ../android/app/src/main/jniLibs build --release
+        cargo ndk -t armeabi-v7a -o ../android/app/src/main/jniLibs build --release
+        cargo ndk -t x86_64 -o ../android/app/src/main/jniLibs build --release
+        cargo ndk -t x86 -o ../android/app/src/main/jniLibs build --release
+    
+    - name: Grant execute permission for gradlew
+      run: cd android && chmod +x gradlew
+    
+    - name: Run Android lint
+      run: cd android && ./gradlew lint
+    
+    - name: Run unit tests
+      run: cd android && ./gradlew test
+    
+    - name: Build debug APK
+      run: cd android && ./gradlew assembleDebug
+    
+    - name: Build release APK
+      run: cd android && ./gradlew assembleRelease
+    
+    - name: Upload debug APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: debug-apk
+        path: android/app/build/outputs/apk/debug/app-debug.apk
+    
+    - name: Upload release APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: release-apk
+        path: android/app/build/outputs/apk/release/app-release-unsigned.apk
+    
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: android-test-results
+        path: android/app/build/test-results/
+
+  instrumented-tests:
+    name: Android Instrumented Tests
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        api-level: [29, 31, 33]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+    
+    - name: Install cargo-ndk
+      run: cargo install cargo-ndk
+    
+    - name: Build Rust libraries
+      run: |
+        cd core
+        cargo ndk -t x86_64 -o ../android/app/src/main/jniLibs build --release
+    
+    - name: Grant execute permission for gradlew
+      run: cd android && chmod +x gradlew
+    
+    - name: Run instrumented tests
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: ${{ matrix.api-level }}
+        arch: x86_64
+        profile: Nexus 6
+        script: cd android && ./gradlew connectedAndroidTest

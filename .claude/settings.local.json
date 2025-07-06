@@ -21,7 +21,9 @@
       "Bash(cargo build:*)",
       "Bash(cargo install:*)",
       "Bash(cargo ndk:*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "Bash(git remote add:*)",
+      "Bash(touch:*)"
     ],
     "deny": []
   }

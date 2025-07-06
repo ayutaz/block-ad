@@ -1,0 +1,121 @@
+name: E2E Tests
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  youtube-blocking-test:
+    name: YouTube Ad Blocking Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install Chrome
+      run: |
+        wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+        sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'
+        sudo apt-get update
+        sudo apt-get install google-chrome-stable
+    
+    - name: Install dependencies
+      run: |
+        pip install -r e2e_tests/requirements.txt
+        pip install webdriver-manager
+    
+    - name: Build and start test proxy
+      run: |
+        # This would build and start the actual VPN/proxy service
+        echo "Starting test proxy..."
+        # For now, we'll simulate this
+    
+    - name: Run YouTube blocking tests
+      run: |
+        cd e2e_tests
+        python test_youtube_blocking.py
+    
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: youtube-test-results
+        path: e2e_tests/test_results/
+
+  memory-usage-test:
+    name: Memory Usage Test
+    strategy:
+      matrix:
+        platform: [android, ios]
+    runs-on: ${{ matrix.platform == 'ios' && 'macos-latest' || 'ubuntu-latest' }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: pip install -r e2e_tests/requirements.txt
+    
+    - name: Set up Android SDK
+      if: matrix.platform == 'android'
+      uses: android-actions/setup-android@v3
+    
+    - name: Set up iOS Simulator
+      if: matrix.platform == 'ios'
+      run: |
+        xcrun simctl create "Test iPhone" "iPhone 15" "iOS 17.0"
+        xcrun simctl boot "Test iPhone"
+    
+    - name: Build app
+      run: |
+        if [ "${{ matrix.platform }}" == "android" ]; then
+          cd android && ./gradlew assembleDebug
+        else
+          cd ios && xcodebuild build -scheme AdBlock -destination 'platform=iOS Simulator,name=Test iPhone'
+        fi
+    
+    - name: Run memory usage test
+      run: |
+        cd e2e_tests
+        python test_memory_usage.py --platform ${{ matrix.platform }}
+    
+    - name: Upload memory test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: memory-test-results-${{ matrix.platform }}
+        path: e2e_tests/memory_results/
+
+  performance-benchmark:
+    name: Performance Benchmark
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Run benchmarks
+      run: |
+        cd core
+        cargo bench --features bench
+    
+    - name: Store benchmark result
+      uses: benchmark-action/github-action-benchmark@v1
+      with:
+        tool: 'cargo'
+        output-file-path: core/target/criterion/output.txt
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        auto-push: true

@@ -1,0 +1,150 @@
+name: Release CD
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version'
+        required: true
+        default: '1.0.0'
+
+jobs:
+  build-android:
+    name: Build Android Release
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+    
+    - name: Install cargo-ndk
+      run: cargo install cargo-ndk
+    
+    - name: Build Rust libraries
+      run: |
+        cd core
+        cargo ndk -t arm64-v8a -o ../android/app/src/main/jniLibs build --release
+        cargo ndk -t armeabi-v7a -o ../android/app/src/main/jniLibs build --release
+        cargo ndk -t x86_64 -o ../android/app/src/main/jniLibs build --release
+        cargo ndk -t x86 -o ../android/app/src/main/jniLibs build --release
+    
+    - name: Grant execute permission for gradlew
+      run: cd android && chmod +x gradlew
+    
+    - name: Build release APK
+      run: cd android && ./gradlew assembleRelease
+    
+    - name: Build release AAB
+      run: cd android && ./gradlew bundleRelease
+    
+    - name: Sign APK
+      uses: r0adkll/sign-android-release@v1
+      with:
+        releaseDirectory: android/app/build/outputs/apk/release
+        signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
+        alias: ${{ secrets.ANDROID_KEY_ALIAS }}
+        keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      env:
+        BUILD_TOOLS_VERSION: "34.0.0"
+    
+    - name: Upload signed APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: signed-apk
+        path: android/app/build/outputs/apk/release/*-signed.apk
+    
+    - name: Upload AAB
+      uses: actions/upload-artifact@v3
+      with:
+        name: release-aab
+        path: android/app/build/outputs/bundle/release/*.aab
+
+  build-ios:
+    name: Build iOS Release
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios
+    
+    - name: Build Rust libraries
+      run: |
+        cd core
+        cargo build --release --target x86_64-apple-ios
+        cargo build --release --target aarch64-apple-ios-sim
+        cargo build --release --target aarch64-apple-ios
+    
+    - name: Create XCFramework
+      run: |
+        cd ios
+        ./build.sh
+    
+    - name: Select Xcode
+      run: sudo xcode-select -s /Applications/Xcode_15.0.app
+    
+    - name: Build iOS app
+      run: |
+        cd ios
+        xcodebuild archive \
+          -scheme AdBlock \
+          -archivePath build/AdBlock.xcarchive \
+          -destination 'generic/platform=iOS' \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO
+    
+    - name: Export IPA
+      run: |
+        cd ios
+        xcodebuild -exportArchive \
+          -archivePath build/AdBlock.xcarchive \
+          -exportPath build \
+          -exportOptionsPlist ExportOptions.plist
+    
+    - name: Upload IPA
+      uses: actions/upload-artifact@v3
+      with:
+        name: ios-ipa
+        path: ios/build/*.ipa
+
+  create-release:
+    name: Create GitHub Release
+    needs: [build-android, build-ios]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          signed-apk/*.apk
+          release-aab/*.aab
+          ios-ipa/*.ipa
+        generate_release_notes: true
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

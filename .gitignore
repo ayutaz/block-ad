@@ -1,101 +1,88 @@
-# General
-.DS_Store
-.AppleDouble
-.LSOverride
-*.swp
-*.swo
-*~
-
-# IDE
-.idea/
-.vscode/
-*.iml
-*.iws
-*.ipr
-
 # Rust
-/target/
 /core/target/
-Cargo.lock
 **/*.rs.bk
-*.pdb
+Cargo.lock
 
 # Android
-*.iml
-.gradle/
-/android/local.properties
 /android/.idea/
-/android/.DS_Store
+/android/.gradle/
 /android/build/
+/android/local.properties
 /android/captures/
 /android/.externalNativeBuild/
 /android/.cxx/
+/android/app/build/
+/android/app/release/
 *.apk
 *.aab
-*.ap_
-*.dex
-*.class
-/android/app/release/
+*.iml
 
 # iOS
-/ios/Pods/
-/ios/*.xcworkspace/xcuserdata/
-/ios/*.xcodeproj/xcuserdata/
-/ios/*.xcodeproj/project.xcworkspace/xcuserdata/
 /ios/build/
 /ios/DerivedData/
-/ios/*.moved-aside
-/ios/*.pbxuser
-/ios/*.perspectivev3
-!default.pbxuser
-!default.mode1v3
-!default.mode2v3
-!default.perspectivev3
-
-# Build artifacts
-*.o
-*.so
-*.dylib
-*.dll
-*.exe
-*.out
-*.app
+/ios/*.xcodeproj/xcuserdata/
+/ios/*.xcworkspace/xcuserdata/
+/ios/*.xcworkspace/xcshareddata/
+/ios/.build/
+/ios/Pods/
+/ios/Podfile.lock
 *.ipa
 *.dSYM.zip
 *.dSYM
 
-# Logs
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# VS Code
+.vscode/
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.ipr
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.env
+
+# Test results
+/e2e_tests/test_results/
+/e2e_tests/memory_results/
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+
+# Build artifacts
+/build/
+/dist/
+/out/
+
+# Secrets
+*.key
+*.keystore
+*.p12
+*.p8
+*.mobileprovision
+*.cer
 
 # Dependencies
 node_modules/
 
-# Environment files
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Test coverage
-coverage/
-*.lcov
-.nyc_output/
-
-# Documentation build
-/docs/_build/
-/docs/.doctrees/
-
 # Temporary files
 *.tmp
 *.temp
-.cache/
+*.swp
+*~
 
-# Certificates and keys
-*.pem
-*.key
-*.p12
-*.mobileprovision
+# Coverage
+*.lcov
+coverage/
+htmlcov/
+.coverage
+.tox/
