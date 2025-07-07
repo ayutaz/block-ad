@@ -75,12 +75,16 @@ jobs:
     - name: Build iOS app
       run: |
         cd ios
-        # Ensure FFI bindings are included in the build
-        echo "Checking for FFI files..."
-        ls -la AdBlock/FFI.swift AdBlock/AdBlock-Bridging-Header.h || true
+        # Ensure bridging header exists
+        echo "Checking for bridging header..."
+        ls -la AdBlock/AdBlock-Bridging-Header.h || true
         
-        # List available destinations for debugging
-        xcodebuild -showdestinations -scheme AdBlock || true
+        # Check XCFramework contents
+        echo "Checking XCFramework..."
+        ls -la AdBlockCoreFFI.xcframework/ || true
+        
+        # List available schemes
+        xcodebuild -list || true
         
         # Build with explicit SDK and destination
         xcodebuild build \
@@ -90,7 +94,9 @@ jobs:
           -derivedDataPath build \
           CODE_SIGN_IDENTITY="" \
           CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGNING_ALLOWED=NO \
+          SWIFT_OBJC_BRIDGING_HEADER="AdBlock/AdBlock-Bridging-Header.h" \
+          LIBRARY_SEARCH_PATHS="$(SRCROOT)/AdBlockCoreFFI.xcframework/ios-x86_64-simulator"
     
     - name: Run iOS tests
       run: |

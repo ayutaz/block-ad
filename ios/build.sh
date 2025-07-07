@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# iOS build script for AdBlock
-
 set -e
 
 echo "Building AdBlock for iOS..."
@@ -10,30 +8,48 @@ echo "Building AdBlock for iOS..."
 echo "Building Rust core library..."
 cd ../core
 
-# Build for iOS simulator (x86_64)
+# Install iOS targets if not present
+rustup target add x86_64-apple-ios aarch64-apple-ios-sim aarch64-apple-ios
+
+# Build for all iOS targets
+echo "Building for x86_64 simulator..."
 cargo build --release --target x86_64-apple-ios
 
-# Build for iOS simulator (aarch64)
+echo "Building for arm64 simulator..."
 cargo build --release --target aarch64-apple-ios-sim
 
-# Build for iOS device (aarch64)
+echo "Building for arm64 device..."
 cargo build --release --target aarch64-apple-ios
 
-# Create fat library
+# Create XCFramework
 echo "Creating XCFramework..."
 cd ../ios
 
-# Create directories
-mkdir -p AdBlockCoreFFI.xcframework
+# Create fat library for simulator
+lipo -create \
+    ../core/target/x86_64-apple-ios/release/libadblock_core.a \
+    ../core/target/aarch64-apple-ios-sim/release/libadblock_core.a \
+    -output ./libadblock_core_sim.a
 
-# Create xcframework
+# Copy device library
+cp ../core/target/aarch64-apple-ios/release/libadblock_core.a ./libadblock_core_device.a
+
+# Remove existing XCFramework
+rm -rf AdBlockCoreFFI.xcframework
+
+# Create XCFramework without headers (using bridging header instead)
 xcodebuild -create-xcframework \
-    -library ../core/target/x86_64-apple-ios/release/libadblock_core.a \
-    -headers AdBlock \
-    -library ../core/target/aarch64-apple-ios-sim/release/libadblock_core.a \
-    -headers AdBlock \
-    -library ../core/target/aarch64-apple-ios/release/libadblock_core.a \
-    -headers AdBlock \
+    -library ./libadblock_core_sim.a \
+    -library ./libadblock_core_device.a \
     -output AdBlockCoreFFI.xcframework
 
+# Clean up temporary files
+rm -f ./libadblock_core_sim.a ./libadblock_core_device.a
+
 echo "iOS build complete!"
+echo "XCFramework created at: AdBlockCoreFFI.xcframework"
+
+# Verify the framework
+echo ""
+echo "Framework info:"
+ls -la AdBlockCoreFFI.xcframework/

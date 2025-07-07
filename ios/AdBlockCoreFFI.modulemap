@@ -1,0 +1,5 @@
+module AdBlockCoreFFI {
+    header "AdBlock/AdBlock-Bridging-Header.h"
+    link "adblock_core"
+    export *
+}
