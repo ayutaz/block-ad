@@ -116,9 +116,10 @@ jobs:
     
     - name: Create APK Release
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      continue-on-error: true  # Don't fail the workflow if release creation fails
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: android-${{ github.run_number }}
+        tag_name: android-v${{ github.run_number }}
         name: Android Build #${{ github.run_number }}
         body: |
           Automated Android APK build from main branch
@@ -141,6 +142,7 @@ jobs:
           android/app/build/outputs/apk/release/app-release-unsigned.apk
         draft: false
         prerelease: true
+        generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
