@@ -3,7 +3,7 @@ import Foundation
 /// Swift wrapper for the Rust ad blocking engine
 /// Provides thread-safe access to the underlying Rust engine
 public final class AdBlockEngine {
-    private let engineHandle: OpaquePointer
+    private let engineHandle: UnsafeMutableRawPointer
     private let queue = DispatchQueue(label: "com.adblock.engine", attributes: .concurrent)
     
     /// Check if engine is initialized
