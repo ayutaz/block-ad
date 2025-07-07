@@ -1,5 +1,5 @@
 import XCTest
-@testable import AdBlock
+@testable import AdBlockCore
 
 /// Unit tests for AdBlockEngine Swift wrapper
 /// TDD Red phase - these tests will fail initially
