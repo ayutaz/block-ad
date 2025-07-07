@@ -47,9 +47,9 @@ class NetworkExtensionTests: XCTestCase {
         provider.loadFilterRules("||ads.com^")
         
         // When: Processing multiple packets
-        provider.shouldBlockPacket(MockPacket(host: "ads.com", port: 443))
-        provider.shouldBlockPacket(MockPacket(host: "safe.com", port: 443))
-        provider.shouldBlockPacket(MockPacket(host: "ads.com", port: 80))
+        _ = provider.shouldBlockPacket(MockPacket(host: "ads.com", port: 443))
+        _ = provider.shouldBlockPacket(MockPacket(host: "safe.com", port: 443))
+        _ = provider.shouldBlockPacket(MockPacket(host: "ads.com", port: 80))
         
         // Then: Statistics should be accurate
         let stats = provider.getStatistics()
@@ -62,7 +62,7 @@ class NetworkExtensionTests: XCTestCase {
         let config = provider.createTunnelConfiguration()
         
         // Then: Configuration should be valid
-        XCTAssertNotNil(config.serverAddress)
+        XCTAssertNotNil(config.tunnelRemoteAddress)
         XCTAssertFalse(config.dnsSettings?.servers.isEmpty ?? true)
         XCTAssertNotNil(config.ipv4Settings)
     }
