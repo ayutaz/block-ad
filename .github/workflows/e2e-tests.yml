@@ -3,10 +3,10 @@ name: E2E Tests
 # DISABLED: E2E tests are not fully implemented yet
 # To enable: Remove the comment below
 # on:
-  schedule:
-    # Run daily at 2 AM UTC
-    - cron: '0 2 * * *'
-  workflow_dispatch:
+#   schedule:
+#     # Run daily at 2 AM UTC
+#     - cron: '0 2 * * *'
+#   workflow_dispatch:
 
 jobs:
   youtube-blocking-test:
