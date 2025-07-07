@@ -41,9 +41,21 @@ block-ad/
 
 ### Android
 
-1. [Releases](https://github.com/ayutaz/block-ad/releases)から最新のAPKをダウンロード
-2. APKをインストール（不明なソースからのインストールを許可する必要があります）
-3. アプリを起動してVPNを有効化
+#### 方法1: GitHub Actions から最新版をダウンロード（推奨）
+1. [Android CI](https://github.com/ayutaz/block-ad/actions/workflows/android.yml)にアクセス
+2. 最新の成功したビルドを選択
+3. Artifactsセクションから`debug-apk`をダウンロード
+4. APKをインストール（不明なソースからのインストールを許可する必要があります）
+5. アプリを起動してVPNを有効化
+
+#### 方法2: コマンドラインでダウンロード
+```bash
+# GitHub CLIを使用
+gh run list --workflow=android.yml --status=completed --limit=1
+gh run download <RUN_ID> --name debug-apk
+```
+
+詳細は[APKダウンロードガイド](DOWNLOAD_APK.md)を参照してください。
 
 ### iOS
 
