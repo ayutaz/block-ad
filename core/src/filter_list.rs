@@ -27,6 +27,14 @@ impl FilterListLoader {
         FilterListLoader {}
     }
 
+    /// Load filter list from URL
+    pub fn load_from_url(&self, url: &str) -> Result<String, Box<dyn std::error::Error>> {
+        // For now, return empty string since we don't have network implementation yet
+        // This will be implemented when network module is complete
+        eprintln!("Warning: Network loading not implemented yet for URL: {}", url);
+        Ok(String::new())
+    }
+
     /// Parse a filter list string into rules
     pub fn parse_filter_list(
         &self,

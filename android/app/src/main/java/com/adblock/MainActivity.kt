@@ -57,6 +57,10 @@ class MainActivity : ComponentActivity() {
                         },
                         onClearStatistics = {
                             clearStatistics()
+                        },
+                        onOpenCustomFilters = {
+                            val intent = Intent(this, CustomFiltersActivity::class.java)
+                            startActivity(intent)
                         }
                     )
                 }
@@ -97,7 +101,8 @@ class MainActivity : ComponentActivity() {
 fun MainScreen(
     onToggleVpn: (Boolean) -> Unit,
     onUpdateFilterLists: () -> Unit,
-    onClearStatistics: () -> Unit
+    onClearStatistics: () -> Unit,
+    onOpenCustomFilters: () -> Unit = {}
 ) {
     var isVpnEnabled by remember { mutableStateOf(false) }
     var statistics by remember { mutableStateOf(Statistics(0, 0, 0)) }
@@ -251,6 +256,22 @@ fun MainScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("統計リセット")
                 }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            // Custom Filters Button
+            OutlinedButton(
+                onClick = onOpenCustomFilters,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("カスタムフィルター")
             }
         }
     }

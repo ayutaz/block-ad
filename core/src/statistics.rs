@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::time::SystemTime;
 
 /// A single block/allow event
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct BlockEvent {
     pub timestamp: SystemTime,
     pub domain: String,
@@ -13,7 +13,7 @@ pub struct BlockEvent {
 }
 
 /// Domain-specific statistics
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct DomainStats {
     pub domain: String,
     pub count: u64,
@@ -185,5 +185,58 @@ impl Statistics {
         self.data_saved = 0;
         self.domain_stats.clear();
         self.recent_events.clear();
+    }
+
+    /// Export statistics to JSON
+    pub fn export_json(&self) -> Result<String, Box<dyn std::error::Error>> {
+        let export_data = serde_json::json!({
+            "export_date": format!("{:?}", SystemTime::now()),
+            "summary": {
+                "blocked_count": self.blocked_count,
+                "allowed_count": self.allowed_count,
+                "total_count": self.blocked_count + self.allowed_count,
+                "block_rate": format!("{:.2}%", self.block_rate() * 100.0),
+                "data_saved_mb": format!("{:.2}", self.data_saved as f64 / 1024.0 / 1024.0),
+            },
+            "top_blocked_domains": self.top_blocked_domains(10),
+            "recent_blocks": self.recent_events(20).iter()
+                .filter(|e| e.blocked)
+                .map(|e| serde_json::json!({
+                    "domain": e.domain,
+                    "timestamp": format!("{:?}", e.timestamp),
+                    "size_bytes": e.size,
+                }))
+                .collect::<Vec<_>>(),
+        });
+        
+        Ok(serde_json::to_string_pretty(&export_data)?)
+    }
+
+    /// Export statistics to CSV
+    pub fn export_csv(&self) -> Result<String, Box<dyn std::error::Error>> {
+        let mut csv = String::new();
+        
+        // Summary section
+        csv.push_str("Summary\n");
+        csv.push_str(&format!("Total Blocked,{}\n", self.blocked_count));
+        csv.push_str(&format!("Total Allowed,{}\n", self.allowed_count));
+        csv.push_str(&format!("Block Rate,{:.2}%\n", self.block_rate() * 100.0));
+        csv.push_str(&format!("Data Saved (MB),{:.2}\n", self.data_saved as f64 / 1024.0 / 1024.0));
+        csv.push_str("\n");
+        
+        // Domain statistics
+        csv.push_str("Domain Statistics\n");
+        csv.push_str("Domain,Block Count,Data Saved (KB)\n");
+        
+        for stats in self.top_blocked_domains(50) {
+            csv.push_str(&format!(
+                "{},{},{:.2}\n",
+                stats.domain,
+                stats.count,
+                stats.data_saved as f64 / 1024.0
+            ));
+        }
+        
+        Ok(csv)
     }
 }

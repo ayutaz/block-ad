@@ -374,10 +374,53 @@ impl FilterEngine {
         }
     }
 
+    /// Add a single rule to the engine
+    pub fn add_rule(&mut self, rule: &str) {
+        let parsed_rule = Self::parse_rule(rule.to_string());
+        self.rules.push(parsed_rule);
+    }
+    
+    /// Rebuild the domain matcher (alias for compile_patterns)
+    pub fn build_domain_matcher(&mut self) {
+        self.compile_patterns();
+    }
+
+    /// Load rules from EasyList format content
+    pub fn load_easylist_rules(&mut self, content: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let loader = crate::FilterListLoader::new();
+        let rules = loader.parse_filter_list(content)?;
+        
+        for rule_str in rules {
+            self.add_rule(&rule_str);
+        }
+        
+        // Rebuild the Aho-Corasick matcher after adding new rules
+        self.build_domain_matcher();
+        
+        Ok(())
+    }
+
     /// Create a new filter engine from configuration
-    pub fn new(_config: &crate::Config) -> Result<Self, Box<dyn std::error::Error>> {
-        // TODO: Load rules based on config
-        // For now, just return default
-        Ok(Self::new_with_defaults())
+    pub fn new(config: &crate::Config) -> Result<Self, Box<dyn std::error::Error>> {
+        let mut engine = Self::new_with_defaults();
+        
+        // Load filter lists from config
+        if !config.filter_lists.is_empty() {
+            let loader = crate::FilterListLoader::new();
+            for url in &config.filter_lists {
+                if let Ok(content) = loader.load_from_url(url) {
+                    engine.load_easylist_rules(&content)?;
+                }
+            }
+        }
+        
+        // Load custom rules if specified
+        if let Some(custom_path) = &config.custom_rules_path {
+            if let Ok(content) = std::fs::read_to_string(custom_path) {
+                engine.load_easylist_rules(&content)?;
+            }
+        }
+        
+        Ok(engine)
     }
 }

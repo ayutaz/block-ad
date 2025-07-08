@@ -1,0 +1,37 @@
+! Title: EasyList Sample
+! Last modified: 07 Jul 2025 00:00 UTC
+! Homepage: https://easylist.to/
+!
+||doubleclick.net^
+||googleadservices.com^
+||googlesyndication.com^
+||google-analytics.com^
+||googletagmanager.com^
+||facebook.com/tr
+||amazon-adsystem.com^
+||adsystem.com^
+||adsrvr.org^
+||adzerk.net^
+||adnxs.com^
+||pubmatic.com^
+||rubiconproject.com^
+||openx.net^
+||criteo.com^
+||outbrain.com^
+||taboola.com^
+||scorecardresearch.com^
+||quantserve.com^
+||addthis.com^
+||disqus.com^
+||hotjar.com^
+||mixpanel.com^
+||segment.io^
+@@||example.com/acceptable-ads.js
+*/banner/*
+*/popup/*
+*/overlay/*
+*_ad_*
+*_ads_*
+###ad-banner
+##.advertisement
+##.ad-container

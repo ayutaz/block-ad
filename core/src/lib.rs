@@ -5,6 +5,7 @@
 
 #![allow(non_snake_case)]
 
+pub mod backup;
 pub mod ffi;
 pub mod filter_engine;
 pub mod filter_list;
@@ -28,6 +29,10 @@ pub struct Config {
     pub max_memory_mb: usize,
     /// Rule update interval in seconds
     pub update_interval: u64,
+    /// Filter list URLs to load
+    pub filter_lists: Vec<String>,
+    /// Path to custom filter rules file
+    pub custom_rules_path: Option<String>,
 }
 
 impl Default for Config {
@@ -36,6 +41,11 @@ impl Default for Config {
             debug: false,
             max_memory_mb: 30,
             update_interval: 86400, // 24 hours
+            filter_lists: vec![
+                "https://easylist.to/easylist/easylist.txt".to_string(),
+                "https://easylist.to/easylist/easyprivacy.txt".to_string(),
+            ],
+            custom_rules_path: None,
         }
     }
 }

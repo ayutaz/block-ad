@@ -28,6 +28,12 @@
             </intent-filter>
         </activity>
 
+        <!-- Custom Filters Activity -->
+        <activity
+            android:name=".CustomFiltersActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AdBlock" />
+
         <!-- VPN Service -->
         <service
             android:name=".vpn.AdBlockVpnService"
