@@ -13,11 +13,16 @@ import com.adblock.AdBlockEngine
 import com.adblock.MainActivity
 import com.adblock.R
 import com.adblock.Statistics
+import com.adblock.filter.FilterListManager
+import com.adblock.filter.CustomRulesManager
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.net.InetAddress
 import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
 /**
@@ -34,16 +39,21 @@ class AdBlockVpnService : VpnService() {
     private var vpnInterface: ParcelFileDescriptor? = null
     private val isRunning = AtomicBoolean(false)
     private lateinit var engine: AdBlockEngine
+    private lateinit var filterListManager: FilterListManager
+    private lateinit var customRulesManager: CustomRulesManager
     private var filterRules: String = ""
     
     private var readThread: Thread? = null
     private var writeThread: Thread? = null
+    private var statsUpdateExecutor: ScheduledExecutorService? = null
     
     override fun onCreate() {
         super.onCreate()
         engine = AdBlockEngine()
+        filterListManager = FilterListManager(this)
+        customRulesManager = CustomRulesManager(this)
         createNotificationChannel()
-        loadDefaultFilterLists()
+        loadAllFilterLists()
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -70,6 +80,9 @@ class AdBlockVpnService : VpnService() {
         
         readThread?.interrupt()
         writeThread?.interrupt()
+        
+        statsUpdateExecutor?.shutdown()
+        statsUpdateExecutor = null
         
         vpnInterface?.close()
         vpnInterface = null
@@ -117,6 +130,9 @@ class AdBlockVpnService : VpnService() {
         
         // Show notification
         startForeground(NOTIFICATION_ID, createNotification())
+        
+        // Start statistics update timer
+        startStatisticsUpdater()
     }
     
     private fun startPacketProcessing() {
@@ -236,6 +252,23 @@ class AdBlockVpnService : VpnService() {
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
+    }
+    
+    private fun loadAllFilterLists() {
+        // Load saved filter lists
+        val savedFilters = filterListManager.loadLocalFilterList()
+        if (savedFilters != null) {
+            engine.loadFilterList(savedFilters)
+        } else {
+            // Load default filter rules
+            loadDefaultFilterLists()
+        }
+        
+        // Load custom rules
+        val customRules = customRulesManager.getAsFilterList()
+        if (customRules.isNotEmpty()) {
+            engine.loadFilterList(customRules)
+        }
     }
     
     private fun loadDefaultFilterLists() {
@@ -361,6 +394,13 @@ class AdBlockVpnService : VpnService() {
         """.trimIndent()
         
         engine.loadFilterList(defaultRules)
+    }
+    
+    private fun startStatisticsUpdater() {
+        statsUpdateExecutor = Executors.newSingleThreadScheduledExecutor()
+        statsUpdateExecutor?.scheduleWithFixedDelay({
+            updateStatistics()
+        }, 5, 5, TimeUnit.SECONDS)
     }
     
     fun updateStatistics() {
