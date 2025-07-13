@@ -51,29 +51,53 @@ class VPNManager: NSObject {
     
     func connect() {
         guard let manager = vpnManager else {
-            setupVPNConfiguration { [weak self] in
-                self?.startConnection()
+            setupVPNConfiguration { [weak self] error in
+                if error != nil {
+                    print("Failed to setup VPN configuration")
+                    return
+                }
+                self?.startConnection { _ in
+                    // Legacy connect method doesn't handle errors
+                }
             }
             return
         }
         
-        startConnection()
+        startConnection { _ in
+            // Legacy connect method doesn't handle errors
+        }
     }
     
     func disconnect() {
         vpnManager?.connection.stopVPNTunnel()
     }
     
-    private func setupVPNConfiguration(completion: @escaping () -> Void) {
+    func startVPN(completion: @escaping (Error?) -> Void) {
+        guard let manager = vpnManager else {
+            setupVPNConfiguration { [weak self] error in
+                if let error = error {
+                    completion(error)
+                    return
+                }
+                self?.startConnection(completion: completion)
+            }
+            return
+        }
+        
+        startConnection(completion: completion)
+    }
+    
+    func stopVPN() {
+        disconnect()
+    }
+    
+    private func setupVPNConfiguration(completion: @escaping (Error?) -> Void) {
         let manager = NEVPNManager.shared()
         
-        // Configure VPN protocol
-        let protocolConfig = NEVPNProtocolIPSec()
+        // Configure VPN protocol for Packet Tunnel Provider
+        let protocolConfig = NETunnelProviderProtocol()
+        protocolConfig.providerBundleIdentifier = "com.adblock.app.tunnel"
         protocolConfig.serverAddress = "AdBlock Local"
-        protocolConfig.username = "adblock"
-        protocolConfig.passwordReference = nil
-        protocolConfig.authenticationMethod = .none
-        protocolConfig.useExtendedAuthentication = false
         protocolConfig.disconnectOnSleep = false
         
         manager.protocolConfiguration = protocolConfig
@@ -83,19 +107,22 @@ class VPNManager: NSObject {
         manager.saveToPreferences { [weak self] error in
             if let error = error {
                 print("Failed to save VPN configuration: \(error)")
+                completion(error)
                 return
             }
             
             self?.vpnManager = manager
-            completion()
+            completion(nil)
         }
     }
     
-    private func startConnection() {
+    private func startConnection(completion: @escaping (Error?) -> Void) {
         do {
             try vpnManager?.connection.startVPNTunnel()
+            completion(nil)
         } catch {
             print("Failed to start VPN: \(error)")
+            completion(error)
         }
     }
 }
@@ -123,6 +150,15 @@ class VPNManager: NSObject {
     }
     
     func disconnect() {
+        print("VPN disconnection is not supported on macOS")
+    }
+    
+    func startVPN(completion: @escaping (Error?) -> Void) {
+        print("VPN connection is not supported on macOS")
+        completion(nil)
+    }
+    
+    func stopVPN() {
         print("VPN disconnection is not supported on macOS")
     }
 }

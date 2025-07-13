@@ -113,12 +113,13 @@ public class AdBlockPacketTunnelProvider: NEPacketTunnelProvider {
             var allowedPackets: [(Data, NSNumber)] = []
             
             for (index, packet) in packets.enumerated() {
-                // Extract destination from packet (simplified for testing)
-                if let host = self.extractHost(from: packet) {
+                // Extract destination from packet using enhanced parser
+                if let host = PacketParser.extractHost(from: packet) {
                     let mockPacket = MockPacket(host: host, port: 443)
                     
                     if self.shouldBlockPacket(mockPacket) {
-                        // Drop the packet
+                        // Drop the packet - log for debugging
+                        NSLog("Blocked: \(host)")
                         continue
                     }
                 }
@@ -140,33 +141,7 @@ public class AdBlockPacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
     
-    private func extractHost(from packet: Data) -> String? {
-        guard packet.count >= 20 else { return nil }
-        
-        return packet.withUnsafeBytes { buffer in
-            // Check IP version (IPv4 only for now)
-            let ipVersion = (buffer[0] >> 4) & 0xF
-            guard ipVersion == 4 else { return nil }
-            
-            // Get protocol (6=TCP, 17=UDP)
-            let proto = buffer[9]
-            guard proto == 6 || proto == 17 else { return nil }
-            
-            // Get destination IP
-            let destIP = Data(bytes: buffer.baseAddress!.advanced(by: 16), count: 4)
-            let ipString = destIP.map { String($0) }.joined(separator: ".")
-            
-            // Get IP header length
-            let ipHeaderLength = Int(buffer[0] & 0xF) * 4
-            
-            // Get destination port
-            guard packet.count >= ipHeaderLength + 4 else { return nil }
-            let portBytes = packet.subdata(in: (ipHeaderLength + 2)..<(ipHeaderLength + 4))
-            let port = UInt16(portBytes[0]) << 8 | UInt16(portBytes[1])
-            
-            return ipString
-        }
-    }
+    // Removed in favor of PacketParser.extractHost() which supports SNI extraction
     
     private func loadDefaultFilterLists() {
         let defaultRules = """

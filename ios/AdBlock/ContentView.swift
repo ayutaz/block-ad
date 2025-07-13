@@ -6,6 +6,13 @@ struct ContentView: View {
     @State private var showingSettings = false
     @State private var showingAlert = false
     @State private var alertMessage = ""
+    @State private var isUpdatingFilters = false
+    
+    private let engine = try? AdBlockEngine()
+    private var filterUpdater: FilterListUpdater? {
+        guard let engine = engine else { return nil }
+        return FilterListUpdater(engine: engine)
+    }
     
     var body: some View {
         NavigationView {
@@ -87,10 +94,18 @@ struct ContentView: View {
                     // Quick Actions
                     HStack(spacing: 12) {
                         Button(action: updateFilterLists) {
-                            Label("フィルター更新", systemImage: "arrow.clockwise")
-                                .frame(maxWidth: .infinity)
+                            if isUpdatingFilters {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle())
+                                    .scaleEffect(0.8)
+                                    .frame(maxWidth: .infinity)
+                            } else {
+                                Label("フィルター更新", systemImage: "arrow.clockwise")
+                                    .frame(maxWidth: .infinity)
+                            }
                         }
                         .buttonStyle(.bordered)
+                        .disabled(isUpdatingFilters)
                         
                         Button(action: clearStatistics) {
                             Label("統計リセット", systemImage: "trash")
@@ -102,6 +117,15 @@ struct ContentView: View {
                 .padding()
             }
             .navigationTitle("AdBlock")
+            .onAppear {
+                loadStatistics()
+                // Load cached filters on startup
+                filterUpdater?.loadCachedFilters()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .vpnStatusDidChange)) { _ in
+                // Update statistics when VPN status changes
+                updateStatistics()
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showingSettings = true }) {
@@ -137,14 +161,57 @@ struct ContentView: View {
     }
     
     private func updateFilterLists() {
-        alertMessage = "フィルターリストを更新しました"
-        showingAlert = true
+        guard let updater = filterUpdater else {
+            alertMessage = "エンジンの初期化に失敗しました"
+            showingAlert = true
+            return
+        }
+        
+        isUpdatingFilters = true
+        updater.updateFilterLists { result in
+            DispatchQueue.main.async {
+                isUpdatingFilters = false
+                switch result {
+                case .success(let message):
+                    alertMessage = message
+                case .failure(let error):
+                    alertMessage = "更新エラー: \(error.localizedDescription)"
+                }
+                showingAlert = true
+            }
+        }
     }
     
     private func clearStatistics() {
         statistics = Statistics(blockedCount: 0, allowedCount: 0, dataSaved: 0)
+        saveStatistics()
+        
+        // Reset engine statistics if available
+        if let engine = engine {
+            engine.resetStatistics()
+        }
+        
         alertMessage = "統計情報をリセットしました"
         showingAlert = true
+    }
+    
+    private func loadStatistics() {
+        if let data = UserDefaults.standard.data(forKey: "adblock_statistics"),
+           let decoded = try? JSONDecoder().decode(Statistics.self, from: data) {
+            statistics = decoded
+        }
+    }
+    
+    private func saveStatistics() {
+        if let encoded = try? JSONEncoder().encode(statistics) {
+            UserDefaults.standard.set(encoded, forKey: "adblock_statistics")
+        }
+    }
+    
+    private func updateStatistics() {
+        guard let engine = engine else { return }
+        statistics = engine.getStatistics()
+        saveStatistics()
     }
     
     private func formatDataSize(_ bytes: Int) -> String {
@@ -174,16 +241,21 @@ struct StatisticItemView: View {
 }
 
 struct SettingsView: View {
-    @State private var autoUpdate = true
-    @State private var blockYouTube = true
+    @StateObject private var settings = SettingsManager.shared
+    @State private var showingCustomRules = false
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         NavigationView {
             Form {
                 Section("フィルター設定") {
-                    Toggle("フィルターの自動更新", isOn: $autoUpdate)
-                    Toggle("YouTube広告ブロック", isOn: $blockYouTube)
+                    Toggle("フィルターの自動更新", isOn: $settings.autoUpdateFilters)
+                    Toggle("YouTube広告ブロック", isOn: $settings.blockYouTubeAds)
+                    Toggle("DNSブロッキング", isOn: $settings.enableDNSBlocking)
+                    
+                    Button("カスタムルール") {
+                        showingCustomRules = true
+                    }
                 }
                 
                 Section("情報") {
@@ -194,8 +266,17 @@ struct SettingsView: View {
                             .foregroundColor(.secondary)
                     }
                 }
+                
+                Section {
+                    Button("設定をリセット", role: .destructive) {
+                        settings.resetToDefaults()
+                    }
+                }
             }
             .navigationTitle("設定")
+            .sheet(isPresented: $showingCustomRules) {
+                CustomRulesView()
+            }
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
