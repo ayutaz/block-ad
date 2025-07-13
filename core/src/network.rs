@@ -2,8 +2,8 @@
 //!
 //! This module handles network-level filtering and DNS resolution
 
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::collections::HashMap;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 /// DNS query types
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -65,7 +65,7 @@ impl NetworkFilter {
         // Normalize domain (remove leading/trailing dots)
         let normalized = domain.trim_matches('.');
         self.blocked_domains.insert(normalized.to_lowercase(), true);
-        
+
         // Also block www subdomain if not already present
         if !normalized.starts_with("www.") {
             let www_domain = format!("www.{}", normalized);
@@ -76,12 +76,12 @@ impl NetworkFilter {
     /// Check if a domain is blocked
     pub fn is_blocked(&self, domain: &str) -> bool {
         let normalized = domain.trim_matches('.').to_lowercase();
-        
+
         // Check exact match
         if self.blocked_domains.contains_key(&normalized) {
             return true;
         }
-        
+
         // Check parent domains
         let parts: Vec<&str> = normalized.split('.').collect();
         for i in 0..parts.len() {
@@ -90,14 +90,14 @@ impl NetworkFilter {
                 return true;
             }
         }
-        
+
         false
     }
 
     /// Process a DNS query
     pub fn process_dns_query(&self, query: &DnsQuery) -> DnsResponse {
         let blocked = self.is_blocked(&query.domain);
-        
+
         let answers = if blocked {
             match query.query_type {
                 DnsQueryType::A => {
@@ -119,7 +119,7 @@ impl NetworkFilter {
         } else {
             vec![]
         };
-        
+
         DnsResponse {
             transaction_id: query.transaction_id,
             answers,
@@ -134,7 +134,7 @@ impl NetworkFilter {
             if rule.trim().is_empty() || rule.starts_with('!') {
                 continue;
             }
-            
+
             // Extract domain from rule
             if let Some(domain) = extract_domain_from_rule(rule) {
                 self.add_blocked_domain(&domain);
@@ -146,21 +146,19 @@ impl NetworkFilter {
 /// Extract domain from a filter rule
 fn extract_domain_from_rule(rule: &str) -> Option<String> {
     let rule = rule.trim();
-    
+
     // Handle domain rules like ||example.com^
     if let Some(stripped) = rule.strip_prefix("||") {
         if let Some(domain_end) = stripped.find('^') {
             return Some(stripped[..domain_end].to_string());
         }
     }
-    
+
     // Handle simple domain rules
-    if !rule.contains('/') && !rule.contains('*') && !rule.contains('?') {
-        if rule.contains('.') && !rule.starts_with('.') {
-            return Some(rule.to_string());
-        }
+    if !rule.contains('/') && !rule.contains('*') && !rule.contains('?') && rule.contains('.') && !rule.starts_with('.') {
+        return Some(rule.to_string());
     }
-    
+
     None
 }
 
@@ -192,7 +190,13 @@ pub enum Protocol {
 
 impl PacketInfo {
     /// Create a new packet info
-    pub fn new(src_ip: IpAddr, dst_ip: IpAddr, src_port: u16, dst_port: u16, protocol: Protocol) -> Self {
+    pub fn new(
+        src_ip: IpAddr,
+        dst_ip: IpAddr,
+        src_port: u16,
+        dst_port: u16,
+        protocol: Protocol,
+    ) -> Self {
         PacketInfo {
             src_ip,
             dst_ip,

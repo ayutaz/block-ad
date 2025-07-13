@@ -4,9 +4,9 @@
 
 #![cfg(target_os = "android")]
 
-use jni::JNIEnv;
 use jni::objects::{JClass, JString};
 use jni::sys::{jboolean, jlong, jstring, JNI_FALSE, JNI_TRUE};
+use jni::JNIEnv;
 use std::ffi::CString;
 
 use crate::ffi;
@@ -51,7 +51,11 @@ pub extern "system" fn Java_com_adblock_AdBlockEngine_nativeShouldBlock(
     };
 
     let should_block = ffi::adblock_engine_should_block(engine, url_cstr.as_ptr());
-    if should_block { JNI_TRUE } else { JNI_FALSE }
+    if should_block {
+        JNI_TRUE
+    } else {
+        JNI_FALSE
+    }
 }
 
 #[no_mangle]
@@ -77,7 +81,11 @@ pub extern "system" fn Java_com_adblock_AdBlockEngine_nativeLoadFilterList(
     };
 
     let success = ffi::adblock_engine_load_filter_list(engine, filter_cstr.as_ptr());
-    if success { JNI_TRUE } else { JNI_FALSE }
+    if success {
+        JNI_TRUE
+    } else {
+        JNI_FALSE
+    }
 }
 
 #[no_mangle]
@@ -118,5 +126,9 @@ pub extern "system" fn Java_com_adblock_AdBlockEngine_nativeResetStats(
     }
 
     let success = ffi::adblock_engine_reset_stats(engine);
-    if success { JNI_TRUE } else { JNI_FALSE }
+    if success {
+        JNI_TRUE
+    } else {
+        JNI_FALSE
+    }
 }

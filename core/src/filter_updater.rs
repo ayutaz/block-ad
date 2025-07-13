@@ -106,27 +106,27 @@ impl FilterUpdater {
         #[cfg(feature = "http")]
         {
             use std::time::Duration;
-            
+
             let client = reqwest::blocking::Client::builder()
                 .timeout(Duration::from_secs(30))
                 .user_agent("AdBlock/1.0")
                 .build()?;
-            
+
             let response = client.get(url).send()?;
-            
+
             if !response.status().is_success() {
                 return Err(format!("HTTP error: {}", response.status()).into());
             }
-            
+
             let content = response.text()?;
             Ok(content)
         }
-        
+
         #[cfg(not(feature = "http"))]
         {
             // Fallback for when HTTP feature is not enabled
             eprintln!("Note: HTTP feature not enabled. URL: {}", url);
-            
+
             // Simulate different content based on URL
             if url.contains("easylist") {
                 Ok(include_str!("../tests/fixtures/easylist_sample.txt").to_string())
@@ -149,7 +149,7 @@ impl FilterUpdater {
 
         // Download all configured filter lists
         let mut all_filters = Vec::new();
-        
+
         for url in &self.config.urls.clone() {
             match self.download_filter_list(url) {
                 Ok(content) => all_filters.push(content),
@@ -163,10 +163,10 @@ impl FilterUpdater {
 
         // Merge all downloaded lists
         let merged = self.merge_filter_lists(all_filters.iter().map(|s| s.as_str()).collect());
-        
+
         // Save to cache
         self.update_with_content(&merged)?;
-        
+
         Ok(merged)
     }
 

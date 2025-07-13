@@ -75,12 +75,12 @@ impl BackupData {
     /// Import backup from JSON string
     pub fn from_json(json: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let backup: BackupData = serde_json::from_str(json)?;
-        
+
         // Validate version compatibility
         if backup.version > Self::CURRENT_VERSION {
             return Err("Backup version is too new".into());
         }
-        
+
         Ok(backup)
     }
 
@@ -90,19 +90,19 @@ impl BackupData {
         if self.version == 0 || self.version > Self::CURRENT_VERSION {
             return Err("Invalid backup version".into());
         }
-        
+
         // Check timestamp is not in future
         if let Ok(duration) = self.created_at.duration_since(SystemTime::now()) {
             if duration.as_secs() > 0 {
                 return Err("Backup timestamp is in the future".into());
             }
         }
-        
+
         // Validate config
         if self.config.max_memory_mb == 0 {
             return Err("Invalid configuration in backup".into());
         }
-        
+
         Ok(())
     }
 }
@@ -128,13 +128,13 @@ impl BackupManager {
             .backup_dir
             .as_ref()
             .ok_or("No backup directory configured")?;
-        
+
         std::fs::create_dir_all(backup_dir)?;
-        
+
         let backup_path = backup_dir.join(filename);
         let json = backup.to_json()?;
         std::fs::write(backup_path, json)?;
-        
+
         Ok(())
     }
 
@@ -144,13 +144,13 @@ impl BackupManager {
             .backup_dir
             .as_ref()
             .ok_or("No backup directory configured")?;
-        
+
         let backup_path = backup_dir.join(filename);
         let json = std::fs::read_to_string(backup_path)?;
         let backup = BackupData::from_json(&json)?;
-        
+
         backup.validate()?;
-        
+
         Ok(backup)
     }
 
@@ -160,14 +160,14 @@ impl BackupManager {
             .backup_dir
             .as_ref()
             .ok_or("No backup directory configured")?;
-        
+
         let mut backups = Vec::new();
-        
+
         if backup_dir.exists() {
             for entry in std::fs::read_dir(backup_dir)? {
                 let entry = entry?;
                 let path = entry.path();
-                
+
                 if path.extension().and_then(|s| s.to_str()) == Some("json") {
                     if let Some(filename) = path.file_name().and_then(|s| s.to_str()) {
                         backups.push(filename.to_string());
@@ -175,11 +175,11 @@ impl BackupManager {
                 }
             }
         }
-        
+
         // Sort by filename (which should include timestamp)
         backups.sort();
         backups.reverse(); // Most recent first
-        
+
         Ok(backups)
     }
 
@@ -191,13 +191,13 @@ impl BackupManager {
         statistics: &crate::Statistics,
     ) -> Result<String, Box<dyn std::error::Error>> {
         let backup = BackupData::create(config, custom_rules, statistics);
-        
+
         // Generate filename with timestamp
         let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
         let filename = format!("adblock_backup_{}.json", timestamp);
-        
+
         self.save_backup(&backup, &filename)?;
-        
+
         Ok(filename)
     }
 }

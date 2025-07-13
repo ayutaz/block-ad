@@ -7,11 +7,11 @@
 
 pub mod backup;
 pub mod ffi;
-#[cfg(target_os = "android")]
-pub mod jni;
 pub mod filter_engine;
 pub mod filter_list;
 pub mod filter_updater;
+#[cfg(target_os = "android")]
+pub mod jni;
 pub mod network;
 pub mod rules;
 pub mod statistics;

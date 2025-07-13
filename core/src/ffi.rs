@@ -178,7 +178,7 @@ pub extern "C" fn adblock_engine_reset_stats(engine: *mut c_void) -> bool {
     };
 
     match engine.core.lock() {
-        Ok(mut core) => {
+        Ok(core) => {
             core.reset_statistics();
             true
         }

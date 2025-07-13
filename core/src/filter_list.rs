@@ -32,22 +32,22 @@ impl FilterListLoader {
         #[cfg(feature = "http")]
         {
             use std::time::Duration;
-            
+
             let client = reqwest::blocking::Client::builder()
                 .timeout(Duration::from_secs(30))
                 .user_agent("AdBlock/1.0")
                 .build()?;
-            
+
             let response = client.get(url).send()?;
-            
+
             if !response.status().is_success() {
                 return Err(format!("HTTP error: {}", response.status()).into());
             }
-            
+
             let content = response.text()?;
             Ok(content)
         }
-        
+
         #[cfg(not(feature = "http"))]
         {
             // Fallback for when HTTP feature is not enabled

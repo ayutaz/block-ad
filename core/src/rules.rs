@@ -2,9 +2,8 @@
 //!
 //! This module handles loading, parsing, and managing filter rules
 
-use std::collections::{HashMap, HashSet};
 use regex::Regex;
-use once_cell::sync::Lazy;
+use std::collections::HashMap;
 
 /// Rule type enumeration
 #[derive(Debug, Clone, PartialEq)]
@@ -90,7 +89,7 @@ impl RuleParser {
     fn parse_element_hiding_rule(&self, line: &str) -> Option<FilterRule> {
         let is_exception = line.contains("#@#");
         let separator = if is_exception { "#@#" } else { "##" };
-        
+
         let parts: Vec<&str> = line.splitn(2, separator).collect();
         if parts.len() != 2 {
             return None;
@@ -103,9 +102,13 @@ impl RuleParser {
         };
 
         let selector = parts[1].trim();
-        
+
         Some(FilterRule {
-            rule_type: if is_exception { RuleType::Allow } else { RuleType::ElementHide },
+            rule_type: if is_exception {
+                RuleType::Allow
+            } else {
+                RuleType::ElementHide
+            },
             pattern: selector.to_string(),
             domains,
             options: RuleOptions::default(),
@@ -136,7 +139,7 @@ impl RuleParser {
         };
 
         // Convert pattern to regex
-        let regex_pattern = self.pattern_to_regex(pattern);
+        let _regex_pattern = self.pattern_to_regex(pattern);
 
         Some(FilterRule {
             rule_type,
@@ -149,10 +152,10 @@ impl RuleParser {
     /// Parse rule options
     fn parse_options(&self, options_str: &str) -> RuleOptions {
         let mut options = RuleOptions::default();
-        
+
         for option in options_str.split(',') {
             let option = option.trim();
-            
+
             match option {
                 "third-party" => options.third_party = Some(true),
                 "~third-party" => options.third_party = Some(false),
@@ -186,18 +189,15 @@ impl RuleParser {
                 "~popup" => options.popup = Some(false),
                 _ => {
                     if let Some(domains) = option.strip_prefix("domain=") {
-                        options.domain = Some(
-                            domains.split('|')
-                                .map(|d| d.trim().to_string())
-                                .collect()
-                        );
+                        options.domain =
+                            Some(domains.split('|').map(|d| d.trim().to_string()).collect());
                     } else if let Some(key) = option.strip_prefix("sitekey=") {
                         options.sitekey = Some(key.to_string());
                     }
                 }
             }
         }
-        
+
         options
     }
 
@@ -210,7 +210,7 @@ impl RuleParser {
 
         let mut regex = String::new();
         let mut chars = pattern.chars().peekable();
-        
+
         // Handle beginning anchor
         if pattern.starts_with("||") {
             regex.push_str("^(https?://)?([^/]*\\.)?");
@@ -220,7 +220,7 @@ impl RuleParser {
             regex.push('^');
             chars.next();
         }
-        
+
         while let Some(ch) = chars.next() {
             match ch {
                 '*' => regex.push_str(".*"),
@@ -234,12 +234,12 @@ impl RuleParser {
                 _ => regex.push(ch),
             }
         }
-        
+
         // Compile and cache
         if let Ok(compiled) = Regex::new(&regex) {
             self.compiled_patterns.insert(pattern.to_string(), compiled);
         }
-        
+
         regex
     }
 }
@@ -291,13 +291,20 @@ impl RuleMatcher {
 
     /// Update domain index for faster lookups
     fn update_domain_index(&mut self, rule_index: usize, is_block: bool) {
-        let rules = if is_block { &self.block_rules } else { &self.allow_rules };
-        
+        let rules = if is_block {
+            &self.block_rules
+        } else {
+            &self.allow_rules
+        };
+
         if let Some(rule) = rules.get(rule_index) {
             if let Some(ref domains) = rule.options.domain {
                 for domain in domains {
                     let key = format!("{}:{}", if is_block { "block" } else { "allow" }, domain);
-                    self.domain_index.entry(key).or_insert_with(Vec::new).push(rule_index);
+                    self.domain_index
+                        .entry(key)
+                        .or_default()
+                        .push(rule_index);
                 }
             }
         }
@@ -328,13 +335,13 @@ impl RuleMatcher {
         if let Some(ref domains) = rule.options.domain {
             if let Some(ref page_domain) = options.domain {
                 let matches_domain = domains.iter().any(|d| {
-                    if d.starts_with('~') {
-                        !page_domain.ends_with(&d[1..])
+                    if let Some(stripped) = d.strip_prefix('~') {
+                        !page_domain.ends_with(stripped)
                     } else {
                         page_domain.ends_with(d)
                     }
                 });
-                
+
                 if !matches_domain {
                     return false;
                 }
@@ -353,7 +360,7 @@ impl RuleMatcher {
     /// Check content type restrictions
     fn matches_content_type(&self, rule: &FilterRule, options: &MatchOptions) -> bool {
         let opts = &rule.options;
-        
+
         match options.content_type {
             ContentType::Script => opts.script.unwrap_or(true),
             ContentType::Image => opts.image.unwrap_or(true),
@@ -373,15 +380,14 @@ impl RuleMatcher {
     fn matches_pattern(&self, pattern: &str, url: &str) -> bool {
         // Simple pattern matching for now
         // In production, use compiled regexes
-        
-        if pattern.starts_with("||") {
-            let domain_pattern = &pattern[2..];
-            if let Some(separator_pos) = domain_pattern.find('^') {
-                let domain = &domain_pattern[..separator_pos];
+
+        if let Some(stripped) = pattern.strip_prefix("||") {
+            if let Some(separator_pos) = stripped.find('^') {
+                let domain = &stripped[..separator_pos];
                 return url.contains(domain);
             }
         }
-        
+
         url.contains(pattern.trim_matches('*'))
     }
 

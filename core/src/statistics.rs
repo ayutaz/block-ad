@@ -208,26 +208,29 @@ impl Statistics {
                 }))
                 .collect::<Vec<_>>(),
         });
-        
+
         Ok(serde_json::to_string_pretty(&export_data)?)
     }
 
     /// Export statistics to CSV
     pub fn export_csv(&self) -> Result<String, Box<dyn std::error::Error>> {
         let mut csv = String::new();
-        
+
         // Summary section
         csv.push_str("Summary\n");
         csv.push_str(&format!("Total Blocked,{}\n", self.blocked_count));
         csv.push_str(&format!("Total Allowed,{}\n", self.allowed_count));
         csv.push_str(&format!("Block Rate,{:.2}%\n", self.block_rate() * 100.0));
-        csv.push_str(&format!("Data Saved (MB),{:.2}\n", self.data_saved as f64 / 1024.0 / 1024.0));
-        csv.push_str("\n");
-        
+        csv.push_str(&format!(
+            "Data Saved (MB),{:.2}\n",
+            self.data_saved as f64 / 1024.0 / 1024.0
+        ));
+        csv.push('\n');
+
         // Domain statistics
         csv.push_str("Domain Statistics\n");
         csv.push_str("Domain,Block Count,Data Saved (KB)\n");
-        
+
         for stats in self.top_blocked_domains(50) {
             csv.push_str(&format!(
                 "{},{},{:.2}\n",
@@ -236,7 +239,7 @@ impl Statistics {
                 stats.data_saved as f64 / 1024.0
             ));
         }
-        
+
         Ok(csv)
     }
 }
