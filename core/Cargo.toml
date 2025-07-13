@@ -54,6 +54,7 @@ proptest = "1.4"
 default = []
 async = ["tokio"]
 http = ["reqwest"]
+bench = []
 
 [profile.release]
 opt-level = 3
@@ -61,7 +62,6 @@ lto = true
 codegen-units = 1
 strip = true
 
-# Benchmarks will be added later
-# [[bench]]
-# name = "filter_benchmark"
-# harness = false
+[[bench]]
+name = "filter_benchmark"
+harness = false

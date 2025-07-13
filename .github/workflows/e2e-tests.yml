@@ -51,7 +51,7 @@ jobs:
     
     - name: Upload test results
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: youtube-test-results
         path: e2e_tests/test_results/
@@ -83,7 +83,7 @@ jobs:
     
     - name: Upload memory test results
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: memory-test-results
         path: e2e_tests/memory_results/
@@ -101,7 +101,7 @@ jobs:
     - name: Run benchmarks
       run: |
         cd core
-        cargo bench --features bench
+        cargo bench
     
     - name: Store benchmark result
       uses: benchmark-action/github-action-benchmark@v1

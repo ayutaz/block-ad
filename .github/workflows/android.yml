@@ -90,9 +90,8 @@ jobs:
     - name: Run unit tests
       run: |
         cd android
-        # Skip unit tests that require JNI libraries in CI environment
-        # These tests need the native library to be loaded which doesn't work in CI
-        ./gradlew test -x :app:testDebugUnitTest -x :app:testReleaseUnitTest || true
+        # Run unit tests with mock implementations
+        ./gradlew test
     
     - name: Build debug APK
       run: cd android && ./gradlew assembleDebug

@@ -139,16 +139,16 @@ jobs:
           -allowProvisioningUpdates
     
     - name: Run iOS tests
-      continue-on-error: true  # Tests are failing due to module import issues
       run: |
         cd ios
-        echo "Skipping tests due to module import issues - will fix later"
-        # xcodebuild test \
-        #   -scheme AdBlock \
-        #   -sdk iphonesimulator \
-        #   -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' \
-        #   -derivedDataPath build \
-        #   -enableCodeCoverage YES
+        xcodebuild test \
+          -scheme AdBlock \
+          -sdk iphonesimulator \
+          -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' \
+          -derivedDataPath build \
+          -enableCodeCoverage YES \
+          SWIFT_OBJC_BRIDGING_HEADER="AdBlock/AdBlock-Bridging-Header.h" \
+          LIBRARY_SEARCH_PATHS="$(SRCROOT)/AdBlockCoreFFI.xcframework/ios-x86_64-simulator"
     
     - name: Display build info
       run: |
