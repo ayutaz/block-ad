@@ -21,11 +21,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.adblock.ui.theme.AdBlockTheme
 import com.adblock.vpn.AdBlockVpnService
 import com.adblock.filter.FilterListManager
 import com.adblock.filter.CustomRulesManager
+import com.adblock.worker.FilterUpdateWorker
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -51,10 +53,15 @@ class MainActivity : ComponentActivity() {
         // Initialize components
         filterListManager = FilterListManager(this)
         customRulesManager = CustomRulesManager(this)
-        adBlockEngine = AdBlockEngine()
+        adBlockEngine = AdBlockEngine.getInstance()
         
         // Load local filter list if available
         loadLocalFilters()
+        
+        // Schedule automatic filter updates if enabled
+        if (filterListManager.isAutoUpdateEnabled()) {
+            FilterUpdateWorker.schedulePeriodicUpdate(this)
+        }
         
         setContent {
             AdBlockTheme {
@@ -392,7 +399,9 @@ fun StatisticItem(
 fun SettingsDialog(
     onDismiss: () -> Unit
 ) {
-    var autoUpdate by remember { mutableStateOf(true) }
+    val context = LocalContext.current
+    val filterListManager = remember { FilterListManager(context) }
+    var autoUpdate by remember { mutableStateOf(filterListManager.isAutoUpdateEnabled()) }
     var blockYouTube by remember { mutableStateOf(true) }
     
     AlertDialog(
@@ -408,7 +417,15 @@ fun SettingsDialog(
                     Text("フィルターの自動更新")
                     Switch(
                         checked = autoUpdate,
-                        onCheckedChange = { autoUpdate = it }
+                        onCheckedChange = { 
+                            autoUpdate = it
+                            filterListManager.setAutoUpdateEnabled(it)
+                            if (it) {
+                                FilterUpdateWorker.schedulePeriodicUpdate(context)
+                            } else {
+                                FilterUpdateWorker.cancelAllUpdates(context)
+                            }
+                        }
                     )
                 }
                 

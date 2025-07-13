@@ -7,6 +7,7 @@ public class SettingsManager: ObservableObject {
     @Published var autoUpdateFilters: Bool {
         didSet {
             UserDefaults.standard.set(autoUpdateFilters, forKey: "auto_update_filters")
+            BackgroundTaskManager.shared.setAutoUpdateEnabled(autoUpdateFilters)
         }
     }
     

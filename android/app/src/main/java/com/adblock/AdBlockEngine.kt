@@ -46,6 +46,11 @@ class AdBlockEngine {
     }
     
     /**
+     * Load filters (alias for loadFilterList)
+     */
+    fun loadFilters(filters: String): Boolean = loadFilterList(filters)
+    
+    /**
      * Get statistics
      */
     fun getStatistics(): Statistics = lock.read {
@@ -97,11 +102,23 @@ class AdBlockEngine {
     companion object {
         private const val LIBRARY_NAME = "adblock_core"
         
+        @Volatile
+        private var INSTANCE: AdBlockEngine? = null
+        
         init {
             try {
                 System.loadLibrary(LIBRARY_NAME)
             } catch (e: UnsatisfiedLinkError) {
                 throw RuntimeException("Failed to load native library: $LIBRARY_NAME", e)
+            }
+        }
+        
+        /**
+         * Get singleton instance
+         */
+        fun getInstance(): AdBlockEngine {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: AdBlockEngine().also { INSTANCE = it }
             }
         }
     }

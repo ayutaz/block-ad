@@ -76,5 +76,18 @@
     <string>AdBlockはローカルVPNを使用して広告をブロックします。実際の外部VPNサーバーには接続しません。</string>
     <key>NSVPNUsageDescription</key>
     <string>AdBlockは広告をブロックするためにローカルVPN接続を使用します。</string>
+    <!-- Background Modes -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>processing</string>
+    </array>
+    <!-- Background Task Identifiers -->
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>com.adblock.filter-update</string>
+    </array>
+    <!-- User Notifications -->
+    <key>NSUserNotificationUsageDescription</key>
+    <string>AdBlockはフィルターリストの更新を通知するために通知を使用します。</string>
 </dict>
 </plist>
