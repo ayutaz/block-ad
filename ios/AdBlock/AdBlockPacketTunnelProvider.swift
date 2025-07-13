@@ -1,3 +1,4 @@
+#if os(iOS)
 import NetworkExtension
 
 /// Packet tunnel provider for Network Extension
@@ -290,3 +291,4 @@ public class AdBlockPacketTunnelProvider: NEPacketTunnelProvider {
         loadFilterRules(defaultRules)
     }
 }
+#endif

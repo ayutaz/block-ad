@@ -47,7 +47,34 @@
     <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSAllowsArbitraryLoads</key>
-        <true/>
+        <false/>
+        <!-- Only allow specific domains for filter list downloads -->
+        <key>NSExceptionDomains</key>
+        <dict>
+            <key>easylist.to</key>
+            <dict>
+                <key>NSIncludesSubdomains</key>
+                <true/>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <false/>
+                <key>NSExceptionRequiresForwardSecrecy</key>
+                <true/>
+            </dict>
+            <key>raw.githubusercontent.com</key>
+            <dict>
+                <key>NSIncludesSubdomains</key>
+                <true/>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <false/>
+                <key>NSExceptionRequiresForwardSecrecy</key>
+                <true/>
+            </dict>
+        </dict>
     </dict>
+    <!-- VPN Usage Description -->
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>AdBlockはローカルVPNを使用して広告をブロックします。実際の外部VPNサーバーには接続しません。</string>
+    <key>NSVPNUsageDescription</key>
+    <string>AdBlockは広告をブロックするためにローカルVPN接続を使用します。</string>
 </dict>
 </plist>

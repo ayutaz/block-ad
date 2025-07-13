@@ -1,84 +1,134 @@
 import Foundation
+#if os(iOS)
 import NetworkExtension
 
 class VPNManager: NSObject {
     static let shared = VPNManager()
     
     private var vpnManager: NEVPNManager?
-    private var engine: AdBlockEngine?
+    private var vpnStatus: NEVPNStatus = .invalid
+    
+    var isConnected: Bool {
+        return vpnStatus == .connected
+    }
     
     private override init() {
         super.init()
-        loadVPNPreference()
+        loadVPNConfiguration()
     }
     
-    private func loadVPNPreference() {
+    private func loadVPNConfiguration() {
         NEVPNManager.shared().loadFromPreferences { [weak self] error in
             if let error = error {
-                print("Failed to load VPN preferences: \(error)")
-            }
-            self?.vpnManager = NEVPNManager.shared()
-        }
-    }
-    
-    func startVPN(completion: @escaping (Error?) -> Void) {
-        guard let vpnManager = vpnManager else {
-            completion(NSError(domain: "AdBlock", code: -1, userInfo: [NSLocalizedDescriptionKey: "VPN manager not initialized"]))
-            return
-        }
-        
-        // Configure VPN
-        let config = NEVPNProtocolIPSec()
-        config.serverAddress = "10.0.0.1"
-        config.username = "adblock"
-        config.authenticationMethod = .none
-        config.localIdentifier = "AdBlock"
-        config.remoteIdentifier = "AdBlock"
-        config.useExtendedAuthentication = false
-        config.disconnectOnSleep = false
-        
-        vpnManager.protocolConfiguration = config
-        vpnManager.localizedDescription = "AdBlock VPN"
-        vpnManager.isEnabled = true
-        vpnManager.isOnDemandEnabled = false
-        
-        vpnManager.saveToPreferences { [weak self] error in
-            if let error = error {
-                completion(error)
+                print("Failed to load VPN configuration: \(error)")
                 return
             }
             
-            self?.vpnManager?.loadFromPreferences { error in
-                if let error = error {
-                    completion(error)
-                    return
-                }
-                
-                do {
-                    try self?.vpnManager?.connection.startVPNTunnel()
-                    completion(nil)
-                } catch {
-                    completion(error)
-                }
-            }
+            self?.vpnManager = NEVPNManager.shared()
+            self?.vpnStatus = NEVPNManager.shared().connection.status
+            
+            // Observe VPN status changes
+            NotificationCenter.default.addObserver(
+                self!,
+                selector: #selector(self?.vpnStatusDidChange(_:)),
+                name: .NEVPNStatusDidChange,
+                object: nil
+            )
         }
     }
     
-    func stopVPN() {
+    @objc private func vpnStatusDidChange(_ notification: Notification) {
+        guard let connection = notification.object as? NEVPNConnection else { return }
+        vpnStatus = connection.status
+        
+        // Post notification for UI updates
+        NotificationCenter.default.post(
+            name: .vpnStatusDidChange,
+            object: nil,
+            userInfo: ["status": vpnStatus.rawValue]
+        )
+    }
+    
+    func connect() {
+        guard let manager = vpnManager else {
+            setupVPNConfiguration { [weak self] in
+                self?.startConnection()
+            }
+            return
+        }
+        
+        startConnection()
+    }
+    
+    func disconnect() {
         vpnManager?.connection.stopVPNTunnel()
     }
     
-    var isConnected: Bool {
-        return vpnManager?.connection.status == .connected
+    private func setupVPNConfiguration(completion: @escaping () -> Void) {
+        let manager = NEVPNManager.shared()
+        
+        // Configure VPN protocol
+        let protocolConfig = NEVPNProtocolIPSec()
+        protocolConfig.serverAddress = "AdBlock Local"
+        protocolConfig.username = "adblock"
+        protocolConfig.passwordReference = nil
+        protocolConfig.authenticationMethod = .none
+        protocolConfig.useExtendedAuthentication = false
+        protocolConfig.disconnectOnSleep = false
+        
+        manager.protocolConfiguration = protocolConfig
+        manager.localizedDescription = "AdBlock VPN"
+        manager.isEnabled = true
+        
+        manager.saveToPreferences { [weak self] error in
+            if let error = error {
+                print("Failed to save VPN configuration: \(error)")
+                return
+            }
+            
+            self?.vpnManager = manager
+            completion()
+        }
     }
     
-    func observeVPNStatus(handler: @escaping (NEVPNStatus) -> Void) {
-        NotificationCenter.default.addObserver(
-            forName: .NEVPNStatusDidChange,
-            object: vpnManager?.connection,
-            queue: .main
-        ) { _ in
-            handler(self.vpnManager?.connection.status ?? .disconnected)
+    private func startConnection() {
+        do {
+            try vpnManager?.connection.startVPNTunnel()
+        } catch {
+            print("Failed to start VPN: \(error)")
         }
     }
 }
+
+extension Notification.Name {
+    static let vpnStatusDidChange = Notification.Name("VPNStatusDidChange")
+}
+
+#else
+
+// macOS stub implementation
+class VPNManager: NSObject {
+    static let shared = VPNManager()
+    
+    var isConnected: Bool {
+        return false
+    }
+    
+    private override init() {
+        super.init()
+    }
+    
+    func connect() {
+        print("VPN connection is not supported on macOS")
+    }
+    
+    func disconnect() {
+        print("VPN disconnection is not supported on macOS")
+    }
+}
+
+extension Notification.Name {
+    static let vpnStatusDidChange = Notification.Name("VPNStatusDidChange")
+}
+
+#endif

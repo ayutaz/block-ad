@@ -33,7 +33,11 @@ struct ContentView: View {
                     }
                     .padding(30)
                     .frame(maxWidth: .infinity)
-                    .background(Color(.systemBackground))
+                    #if os(iOS)
+                .background(Color(.systemBackground))
+                #else
+                .background(Color(NSColor.windowBackgroundColor))
+                #endif
                     .cornerRadius(16)
                     .shadow(radius: 5)
                     
@@ -192,13 +196,23 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("設定")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("閉じる") {
                         dismiss()
                     }
                 }
+                #else
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("閉じる") {
+                        dismiss()
+                    }
+                }
+                #endif
             }
         }
     }
