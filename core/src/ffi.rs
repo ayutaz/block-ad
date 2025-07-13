@@ -186,6 +186,34 @@ pub extern "C" fn adblock_engine_reset_stats(engine: *mut c_void) -> bool {
     }
 }
 
+/// Get performance metrics
+///
+/// # Safety
+/// The engine pointer must be valid
+/// 
+/// Returns a JSON string with performance metrics
+#[no_mangle]
+pub extern "C" fn adblock_engine_get_metrics(engine: *mut c_void) -> *mut c_char {
+    let Some(engine) = get_engine_ref(engine) else {
+        return ptr::null_mut();
+    };
+
+    match engine.core.lock() {
+        Ok(core) => {
+            let metrics = core.engine().get_metrics().snapshot();
+            
+            match metrics.to_json() {
+                Ok(json) => match CString::new(json) {
+                    Ok(cstring) => cstring.into_raw(),
+                    Err(_) => ptr::null_mut(),
+                },
+                Err(_) => ptr::null_mut(),
+            }
+        }
+        Err(_) => ptr::null_mut(),
+    }
+}
+
 /// Free a string allocated by the library
 ///
 /// # Safety

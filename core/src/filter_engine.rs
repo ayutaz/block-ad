@@ -4,6 +4,7 @@
 
 use aho_corasick::AhoCorasick;
 use std::sync::Arc;
+use crate::metrics::{PerformanceMetrics, PerfTimer};
 
 /// Result of a block decision
 #[derive(Debug, Clone, PartialEq)]
@@ -57,6 +58,8 @@ pub struct FilterEngine {
     domain_matcher: Option<Arc<AhoCorasick>>,
     /// Pattern info for matched patterns
     pattern_info: Vec<PatternInfo>,
+    /// Performance metrics
+    metrics: PerformanceMetrics,
 }
 
 impl FilterEngine {
@@ -73,6 +76,7 @@ impl FilterEngine {
             rules,
             domain_matcher: None,
             pattern_info: Vec::new(),
+            metrics: PerformanceMetrics::new(),
         };
 
         engine.compile_patterns();
@@ -117,6 +121,7 @@ impl FilterEngine {
             rules,
             domain_matcher: None,
             pattern_info: Vec::new(),
+            metrics: PerformanceMetrics::new(),
         };
 
         engine.compile_patterns();
@@ -131,6 +136,7 @@ impl FilterEngine {
             rules,
             domain_matcher: None,
             pattern_info: Vec::new(),
+            metrics: PerformanceMetrics::new(),
         };
 
         engine.compile_patterns();
@@ -168,6 +174,9 @@ impl FilterEngine {
             let ac = AhoCorasick::new(&patterns).unwrap();
             self.domain_matcher = Some(Arc::new(ac));
         }
+        
+        // Update metrics
+        self.metrics.set_filter_count(self.rules.len());
     }
 
     /// Get pattern statistics
@@ -180,6 +189,7 @@ impl FilterEngine {
 
     /// Check if a URL should be blocked
     pub fn should_block(&self, url: &str) -> BlockDecision {
+        let timer = PerfTimer::start();
         // First check exception rules
         for rule in &self.rules {
             if let FilterRule::Exception(pattern) = rule {
@@ -194,6 +204,7 @@ impl FilterEngine {
 
         // Use Aho-Corasick for fast domain matching
         if let Some(decision) = self.check_aho_corasick_matches(url) {
+            self.metrics.record_request(decision.should_block, timer.elapsed());
             return decision;
         }
 
@@ -205,10 +216,12 @@ impl FilterEngine {
                 }
                 FilterRule::Pattern(pattern) => {
                     if self.matches_wildcard_pattern(url, pattern) {
-                        return BlockDecision {
+                        let decision = BlockDecision {
                             should_block: true,
                             reason: Some(format!("Matched pattern: {pattern}")),
                         };
+                        self.metrics.record_request(decision.should_block, timer.elapsed());
+                        return decision;
                     }
                 }
                 FilterRule::Exception(_) => {
@@ -217,10 +230,12 @@ impl FilterEngine {
             }
         }
 
-        BlockDecision {
+        let decision = BlockDecision {
             should_block: false,
             reason: None,
-        }
+        };
+        self.metrics.record_request(decision.should_block, timer.elapsed());
+        decision
     }
 
     /// Check Aho-Corasick matches
@@ -422,5 +437,15 @@ impl FilterEngine {
         }
 
         Ok(engine)
+    }
+    
+    /// Get performance metrics
+    pub fn get_metrics(&self) -> &PerformanceMetrics {
+        &self.metrics
+    }
+    
+    /// Reset performance metrics
+    pub fn reset_metrics(&mut self) {
+        self.metrics.reset();
     }
 }

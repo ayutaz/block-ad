@@ -99,6 +99,14 @@ class AdBlockEngine {
         return pattern.find(json)?.groupValues?.get(1)?.toLongOrNull()
     }
     
+    /**
+     * Get performance metrics
+     */
+    fun getPerformanceMetrics(): String? = lock.read {
+        if (engineHandle == 0L) return null
+        nativeGetMetrics(engineHandle)
+    }
+    
     companion object {
         private const val LIBRARY_NAME = "adblock_core"
         
@@ -141,5 +149,8 @@ class AdBlockEngine {
     
     @Keep
     private external fun nativeResetStats(handle: Long): Boolean
+    
+    @Keep
+    private external fun nativeGetMetrics(handle: Long): String?
 }
 

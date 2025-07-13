@@ -132,3 +132,29 @@ pub extern "system" fn Java_com_adblock_AdBlockEngine_nativeResetStats(
         JNI_FALSE
     }
 }
+
+#[no_mangle]
+pub extern "system" fn Java_com_adblock_AdBlockEngine_nativeGetMetrics(
+    env: JNIEnv,
+    _class: JClass,
+    handle: jlong,
+) -> jstring {
+    let engine = handle as *mut std::ffi::c_void;
+    if engine.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    let metrics_ptr = ffi::adblock_engine_get_metrics(engine);
+    if metrics_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    let metrics_cstr = unsafe { std::ffi::CStr::from_ptr(metrics_ptr) };
+    let result = match env.new_string(metrics_cstr.to_string_lossy()) {
+        Ok(s) => s.into_inner(),
+        Err(_) => std::ptr::null_mut(),
+    };
+
+    unsafe { ffi::adblock_free_string(metrics_ptr as *mut std::os::raw::c_char) };
+    result
+}

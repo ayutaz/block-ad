@@ -72,6 +72,23 @@ public final class AdBlockEngine {
             )
         }
     }
+    
+    /// Get performance metrics
+    /// - Returns: PerformanceMetrics object with detailed performance data
+    public func getPerformanceMetrics() -> PerformanceMetrics? {
+        return queue.sync {
+            guard let metricsPtr = adblock_engine_get_metrics(engineHandle) else {
+                return nil
+            }
+            
+            defer {
+                adblock_free_string(metricsPtr)
+            }
+            
+            let metricsString = String(cString: metricsPtr)
+            return PerformanceMetrics.fromJSON(metricsString)
+        }
+    }
 }
 
 /// Errors that can occur during engine operations
