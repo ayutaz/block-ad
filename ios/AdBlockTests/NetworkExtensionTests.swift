@@ -1,6 +1,6 @@
 import XCTest
 import NetworkExtension
-@testable import AdBlockCore
+@testable import AdBlock
 
 /// Unit tests for Network Extension
 /// TDD Red phase
