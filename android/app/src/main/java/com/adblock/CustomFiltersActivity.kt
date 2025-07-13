@@ -1,5 +1,6 @@
 package com.adblock
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -16,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.adblock.ui.theme.AdBlockTheme
+import com.adblock.filter.CustomRulesManager
 
 class CustomFiltersActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,7 +37,9 @@ class CustomFiltersActivity : ComponentActivity() {
 fun CustomFiltersScreen(
     onBackPressed: () -> Unit
 ) {
-    var customRules by remember { mutableStateOf(loadCustomRules()) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val customRulesManager = remember { CustomRulesManager(context) }
+    var customRules by remember { mutableStateOf(customRulesManager.loadRules()) }
     var showAddDialog by remember { mutableStateOf(false) }
     var newRule by remember { mutableStateOf("") }
 
@@ -95,8 +99,8 @@ fun CustomFiltersScreen(
                 CustomRuleItem(
                     rule = rule,
                     onDelete = {
-                        customRules = customRules.filter { it != rule }
-                        saveCustomRules(customRules)
+                        customRulesManager.removeRule(rule)
+                        customRules = customRulesManager.loadRules()
                     }
                 )
             }
@@ -142,8 +146,8 @@ fun CustomFiltersScreen(
                 TextButton(
                     onClick = {
                         if (newRule.isNotBlank()) {
-                            customRules = customRules + newRule.trim()
-                            saveCustomRules(customRules)
+                            customRulesManager.addRule(newRule.trim())
+                            customRules = customRulesManager.loadRules()
                             newRule = ""
                             showAddDialog = false
                         }
@@ -191,12 +195,3 @@ fun CustomRuleItem(
     }
 }
 
-// Stub functions - will be implemented with actual storage
-private fun loadCustomRules(): List<String> {
-    // TODO: Load from SharedPreferences
-    return emptyList()
-}
-
-private fun saveCustomRules(rules: List<String>) {
-    // TODO: Save to SharedPreferences
-}

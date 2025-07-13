@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.adblock.ui.theme.AdBlockTheme
 import com.adblock.vpn.AdBlockVpnService
 import com.adblock.filter.FilterListManager
+import com.adblock.filter.CustomRulesManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -33,6 +34,7 @@ import java.util.Locale
 class MainActivity : ComponentActivity() {
     
     private lateinit var filterListManager: FilterListManager
+    private lateinit var customRulesManager: CustomRulesManager
     private lateinit var adBlockEngine: AdBlockEngine
     
     private val vpnPermissionLauncher = registerForActivityResult(
@@ -48,6 +50,7 @@ class MainActivity : ComponentActivity() {
         
         // Initialize components
         filterListManager = FilterListManager(this)
+        customRulesManager = CustomRulesManager(this)
         adBlockEngine = AdBlockEngine()
         
         // Load local filter list if available
@@ -149,9 +152,16 @@ class MainActivity : ComponentActivity() {
     
     private fun loadLocalFilters() {
         lifecycleScope.launch {
+            // Load EasyList filters
             val localFilters = filterListManager.loadLocalFilterList()
             if (localFilters != null) {
                 adBlockEngine.loadFilterList(localFilters)
+            }
+            
+            // Load custom rules
+            val customRules = customRulesManager.getAsFilterList()
+            if (customRules.isNotEmpty()) {
+                adBlockEngine.loadFilterList(customRules)
             }
         }
     }
