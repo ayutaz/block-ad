@@ -25,10 +25,31 @@ android {
     
     // Removed externalNativeBuild - libraries are pre-built by cargo-ndk
 
+    signingConfigs {
+        release {
+            // Use environment variables for CI/CD signing
+            if (System.getenv("ANDROID_KEYSTORE_PATH") != null) {
+                storeFile file(System.getenv("ANDROID_KEYSTORE_PATH"))
+                storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            
+            // Only sign if keystore is available
+            if (System.getenv("ANDROID_KEYSTORE_PATH") != null) {
+                signingConfig signingConfigs.release
+            }
+        }
+        debug {
+            // Debug builds use debug signing automatically
         }
     }
     compileOptions {

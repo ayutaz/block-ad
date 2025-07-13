@@ -50,7 +50,8 @@
       "Bash(true)",
       "Bash(gh issue list:*)",
       "Bash(cp:*)",
-      "Bash(swift test:*)"
+      "Bash(swift test:*)",
+      "Bash(curl:*)"
     ],
     "deny": []
   }

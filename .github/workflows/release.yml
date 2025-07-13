@@ -10,6 +10,15 @@ on:
         description: 'Release version'
         required: true
         default: '1.0.0'
+      release_type:
+        description: 'Release type'
+        required: true
+        type: choice
+        options:
+          - production
+          - beta
+          - alpha
+        default: 'production'
 
 jobs:
   build-android:
@@ -41,8 +50,27 @@ jobs:
         cargo ndk -t x86_64 -o ../android/app/src/main/jniLibs build --release
         cargo ndk -t x86 -o ../android/app/src/main/jniLibs build --release
     
-    - name: Grant execute permission for gradlew
-      run: cd android && chmod +x gradlew
+    - name: Setup Gradle
+      run: |
+        cd android
+        # Download gradle wrapper if not present
+        if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
+          echo "Downloading Gradle wrapper..."
+          mkdir -p gradle/wrapper
+          curl -L https://github.com/gradle/gradle/raw/v8.0.2/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
+        fi
+        chmod +x gradlew || true
+    
+    - name: Set version number
+      run: |
+        cd android
+        VERSION=${{ github.event.inputs.version || github.ref_name }}
+        VERSION=${VERSION#v}  # Remove 'v' prefix if present
+        BUILD_NUMBER=${{ github.run_number }}
+        
+        # Update version in build.gradle
+        sed -i "s/versionName \".*\"/versionName \"$VERSION\"/" app/build.gradle
+        sed -i "s/versionCode .*/versionCode $BUILD_NUMBER/" app/build.gradle
     
     - name: Build release APK
       run: cd android && ./gradlew assembleRelease
@@ -51,6 +79,7 @@ jobs:
       run: cd android && ./gradlew bundleRelease
     
     - name: Sign APK
+      if: ${{ secrets.ANDROID_SIGNING_KEY != '' }}
       uses: r0adkll/sign-android-release@v1
       with:
         releaseDirectory: android/app/build/outputs/apk/release
@@ -61,17 +90,33 @@ jobs:
       env:
         BUILD_TOOLS_VERSION: "34.0.0"
     
-    - name: Upload signed APK
+    - name: Sign AAB
+      if: ${{ secrets.ANDROID_SIGNING_KEY != '' }}
+      uses: r0adkll/sign-android-release@v1
+      with:
+        releaseDirectory: android/app/build/outputs/bundle/release
+        signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
+        alias: ${{ secrets.ANDROID_KEY_ALIAS }}
+        keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      env:
+        BUILD_TOOLS_VERSION: "34.0.0"
+    
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: signed-apk
-        path: android/app/build/outputs/apk/release/*-signed.apk
+        name: adblock-apk-${{ github.event.inputs.version || github.ref_name }}
+        path: |
+          android/app/build/outputs/apk/release/*-signed.apk
+          android/app/build/outputs/apk/release/app-release-unsigned.apk
     
     - name: Upload AAB
       uses: actions/upload-artifact@v4
       with:
-        name: release-aab
-        path: android/app/build/outputs/bundle/release/*.aab
+        name: adblock-aab-${{ github.event.inputs.version || github.ref_name }}
+        path: |
+          android/app/build/outputs/bundle/release/*-signed.aab
+          android/app/build/outputs/bundle/release/app-release.aab
 
   build-ios:
     name: Build iOS Release
@@ -92,18 +137,36 @@ jobs:
         cargo build --release --target aarch64-apple-ios-sim
         cargo build --release --target aarch64-apple-ios
     
-    - name: Create XCFramework
+    - name: Build XCFramework
       run: |
-        cd ios
-        ./build.sh
+        cd scripts
+        chmod +x build_ios_framework.sh
+        ./build_ios_framework.sh
     
     - name: Select Xcode
       run: sudo xcode-select -s /Applications/Xcode_15.0.app
+    
+    - name: Install CocoaPods dependencies
+      run: |
+        cd ios
+        pod install
+    
+    - name: Set version number
+      run: |
+        cd ios
+        VERSION=${{ github.event.inputs.version || github.ref_name }}
+        VERSION=${VERSION#v}  # Remove 'v' prefix if present
+        BUILD_NUMBER=${{ github.run_number }}
+        
+        # Update version and build number
+        xcrun agvtool new-version -all $BUILD_NUMBER
+        xcrun agvtool new-marketing-version $VERSION
     
     - name: Build iOS app
       run: |
         cd ios
         xcodebuild archive \
+          -workspace AdBlock.xcworkspace \
           -scheme AdBlock \
           -archivePath build/AdBlock.xcarchive \
           -destination 'generic/platform=iOS' \
@@ -140,11 +203,32 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          signed-apk/*.apk
-          release-aab/*.aab
+          adblock-apk-*/*.apk
+          adblock-aab-*/*.aab
           ios-ipa/*.ipa
         generate_release_notes: true
-        draft: false
-        prerelease: false
+        draft: true
+        prerelease: ${{ github.event.inputs.release_type != 'production' }}
+        name: AdBlock ${{ github.event.inputs.version || github.ref_name }}
+        body: |
+          ## AdBlock Release ${{ github.event.inputs.version || github.ref_name }}
+          
+          ### Installation Instructions
+          
+          #### Android
+          - **APK**: Direct installation file for Android devices
+          - **AAB**: For Google Play Store upload
+          
+          To install the APK:
+          1. Enable "Unknown Sources" in Android Settings > Security
+          2. Download the APK file
+          3. Open the downloaded file to install
+          
+          #### iOS
+          - **IPA**: Installation file for iOS devices
+          - Requires sideloading or TestFlight distribution
+          
+          ### What's Changed
+          See below for the full changelog.
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
