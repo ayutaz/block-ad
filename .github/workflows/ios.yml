@@ -72,7 +72,7 @@ jobs:
     - name: Run SwiftLint
       run: cd ios && swiftlint lint || true
     
-    - name: Build iOS app
+    - name: Build iOS app for simulator
       run: |
         cd ios
         # Ensure bridging header exists
@@ -83,10 +83,7 @@ jobs:
         echo "Checking XCFramework..."
         ls -la AdBlockCoreFFI.xcframework/ || true
         
-        # List available schemes
-        xcodebuild -list || true
-        
-        # Build with explicit SDK and destination
+        # Build for simulator
         xcodebuild build \
           -scheme AdBlock \
           -sdk iphonesimulator \
@@ -97,6 +94,49 @@ jobs:
           CODE_SIGNING_ALLOWED=NO \
           SWIFT_OBJC_BRIDGING_HEADER="AdBlock/AdBlock-Bridging-Header.h" \
           LIBRARY_SEARCH_PATHS="$(SRCROOT)/AdBlockCoreFFI.xcframework/ios-x86_64-simulator"
+    
+    - name: Build iOS app for device
+      run: |
+        cd ios
+        # Build for device (archive)
+        xcodebuild archive \
+          -scheme AdBlock \
+          -sdk iphoneos \
+          -archivePath build/AdBlock.xcarchive \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO \
+          DEVELOPMENT_TEAM="" \
+          SWIFT_OBJC_BRIDGING_HEADER="AdBlock/AdBlock-Bridging-Header.h" \
+          LIBRARY_SEARCH_PATHS="$(SRCROOT)/AdBlockCoreFFI.xcframework/ios-arm64"
+    
+    - name: Export IPA
+      run: |
+        cd ios
+        # Create export options plist
+        cat > ExportOptions.plist << EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>method</key>
+            <string>development</string>
+            <key>compileBitcode</key>
+            <false/>
+            <key>stripSwiftSymbols</key>
+            <true/>
+            <key>signingStyle</key>
+            <string>automatic</string>
+        </dict>
+        </plist>
+        EOF
+        
+        # Export IPA
+        xcodebuild -exportArchive \
+          -archivePath build/AdBlock.xcarchive \
+          -exportPath build/ipa \
+          -exportOptionsPlist ExportOptions.plist \
+          -allowProvisioningUpdates
     
     - name: Run iOS tests
       continue-on-error: true  # Tests are failing due to module import issues
@@ -110,15 +150,41 @@ jobs:
         #   -derivedDataPath build \
         #   -enableCodeCoverage YES
     
-    - name: Upload build artifacts
-      if: success()
+    - name: Display build info
+      run: |
+        echo "### iOS Build Information ###"
+        if [ -f "ios/build/ipa/AdBlock.ipa" ]; then
+          echo "IPA size: $(du -h ios/build/ipa/AdBlock.ipa | cut -f1)"
+        else
+          echo "IPA not found, checking for unsigned app..."
+          find ios/build -name "*.app" -type d | head -5
+        fi
+        echo "Build number: ${{ github.run_number }}"
+        echo "Commit: ${{ github.sha }}"
+    
+    - name: Upload simulator build
       uses: actions/upload-artifact@v4
       with:
-        name: ios-build-products
-        path: |
-          ios/build/Build/Products/Debug-iphonesimulator/
-          ios/AdBlockCoreFFI.xcframework/
+        name: AdBlock-iOS-Simulator-${{ github.run_number }}
+        path: ios/build/Build/Products/Debug-iphonesimulator/*.app
+        retention-days: 30
+        if-no-files-found: warn
+    
+    - name: Upload IPA (if available)
+      uses: actions/upload-artifact@v4
+      with:
+        name: AdBlock-iOS-unsigned-${{ github.run_number }}
+        path: ios/build/ipa/AdBlock.ipa
+        retention-days: 30
+        if-no-files-found: warn
+    
+    - name: Upload XCArchive
+      uses: actions/upload-artifact@v4
+      with:
+        name: AdBlock-iOS-xcarchive-${{ github.run_number }}
+        path: ios/build/AdBlock.xcarchive
         retention-days: 7
+        if-no-files-found: warn
         
     - name: Generate test report
       continue-on-error: true
@@ -127,3 +193,31 @@ jobs:
         path: ios/build/Logs/Test/*.xcresult
         upload-bundles: true
       if: success() || failure()
+    
+    - name: Create job summary
+      run: |
+        echo "## iOS Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Build Information" >> $GITHUB_STEP_SUMMARY
+        echo "- **Build Number:** #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Build Artifacts" >> $GITHUB_STEP_SUMMARY
+        if [ -f "ios/build/ipa/AdBlock.ipa" ]; then
+          echo "- **IPA File:** $(du -h ios/build/ipa/AdBlock.ipa | cut -f1)" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "- **Simulator Build:** Available" >> $GITHUB_STEP_SUMMARY
+        echo "- **XCArchive:** Available for re-signing" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Download Links" >> $GITHUB_STEP_SUMMARY
+        echo "The iOS builds are available as artifacts in this workflow run." >> $GITHUB_STEP_SUMMARY
+        echo "- [Download All Artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Installation Notes" >> $GITHUB_STEP_SUMMARY
+        echo "⚠️ **Important:** The IPA file is unsigned and requires:" >> $GITHUB_STEP_SUMMARY
+        echo "1. An Apple Developer account for signing" >> $GITHUB_STEP_SUMMARY
+        echo "2. Provisioning profiles for your devices" >> $GITHUB_STEP_SUMMARY
+        echo "3. Re-signing with your development certificate" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "For testing in simulator, use the Simulator build artifact." >> $GITHUB_STEP_SUMMARY
