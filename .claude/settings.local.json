@@ -48,7 +48,8 @@
       "Bash(gh run watch:*)",
       "Bash(grep:*)",
       "Bash(true)",
-      "Bash(gh issue list:*)"
+      "Bash(gh issue list:*)",
+      "Bash(cp:*)"
     ],
     "deny": []
   }
