@@ -29,10 +29,31 @@ impl FilterListLoader {
 
     /// Load filter list from URL
     pub fn load_from_url(&self, url: &str) -> Result<String, Box<dyn std::error::Error>> {
-        // For now, return empty string since we don't have network implementation yet
-        // This will be implemented when network module is complete
-        eprintln!("Warning: Network loading not implemented yet for URL: {}", url);
-        Ok(String::new())
+        #[cfg(feature = "http")]
+        {
+            use std::time::Duration;
+            
+            let client = reqwest::blocking::Client::builder()
+                .timeout(Duration::from_secs(30))
+                .user_agent("AdBlock/1.0")
+                .build()?;
+            
+            let response = client.get(url).send()?;
+            
+            if !response.status().is_success() {
+                return Err(format!("HTTP error: {}", response.status()).into());
+            }
+            
+            let content = response.text()?;
+            Ok(content)
+        }
+        
+        #[cfg(not(feature = "http"))]
+        {
+            // Fallback for when HTTP feature is not enabled
+            eprintln!("Warning: HTTP feature not enabled for URL: {}", url);
+            Ok(String::new())
+        }
     }
 
     /// Parse a filter list string into rules

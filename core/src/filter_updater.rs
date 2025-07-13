@@ -103,17 +103,38 @@ impl FilterUpdater {
             return Err("Failed to download filter list".into());
         }
 
-        // In production, this would use reqwest or similar HTTP client
-        // For now, return a simulated response
-        eprintln!("Note: HTTP download not implemented yet. URL: {}", url);
+        #[cfg(feature = "http")]
+        {
+            use std::time::Duration;
+            
+            let client = reqwest::blocking::Client::builder()
+                .timeout(Duration::from_secs(30))
+                .user_agent("AdBlock/1.0")
+                .build()?;
+            
+            let response = client.get(url).send()?;
+            
+            if !response.status().is_success() {
+                return Err(format!("HTTP error: {}", response.status()).into());
+            }
+            
+            let content = response.text()?;
+            Ok(content)
+        }
         
-        // Simulate different content based on URL
-        if url.contains("easylist") {
-            Ok(include_str!("../tests/fixtures/easylist_sample.txt").to_string())
-        } else if url.contains("easyprivacy") {
-            Ok("! EasyPrivacy Sample\n||analytics.com^\n||tracking.net^".to_string())
-        } else {
-            Ok("||downloaded-ads.com^".to_string())
+        #[cfg(not(feature = "http"))]
+        {
+            // Fallback for when HTTP feature is not enabled
+            eprintln!("Note: HTTP feature not enabled. URL: {}", url);
+            
+            // Simulate different content based on URL
+            if url.contains("easylist") {
+                Ok(include_str!("../tests/fixtures/easylist_sample.txt").to_string())
+            } else if url.contains("easyprivacy") {
+                Ok("! EasyPrivacy Sample\n||analytics.com^\n||tracking.net^".to_string())
+            } else {
+                Ok("||downloaded-ads.com^".to_string())
+            }
         }
     }
 
