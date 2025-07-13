@@ -133,33 +133,144 @@ extension Notification.Name {
 
 #else
 
-// macOS stub implementation
+// macOS implementation
+import SystemExtensions
+import Network
+
 class VPNManager: NSObject {
     static let shared = VPNManager()
     
+    private var providerManager: NETunnelProviderManager?
+    private var extensionBundle = "com.adblock.app.networkextension"
+    
     var isConnected: Bool {
-        return false
+        return providerManager?.connection.status == .connected
     }
     
     private override init() {
         super.init()
+        loadVPNConfiguration()
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(vpnStatusDidChange(_:)),
+            name: .NEVPNStatusDidChange,
+            object: nil
+        )
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    private func loadVPNConfiguration() {
+        NETunnelProviderManager.loadAllFromPreferences { [weak self] managers, error in
+            if let error = error {
+                print("Failed to load VPN configurations: \(error)")
+                return
+            }
+            
+            self?.providerManager = managers?.first ?? NETunnelProviderManager()
+            self?.setupVPNConfiguration()
+        }
+    }
+    
+    private func setupVPNConfiguration() {
+        guard let providerManager = providerManager else { return }
+        
+        providerManager.localizedDescription = "AdBlock Network Filter"
+        
+        let providerProtocol = NETunnelProviderProtocol()
+        providerProtocol.providerBundleIdentifier = extensionBundle
+        providerProtocol.serverAddress = "AdBlock"
+        providerProtocol.providerConfiguration = [
+            "filterEnabled": true,
+            "blockAds": true,
+            "blockTrackers": true
+        ]
+        
+        providerManager.protocolConfiguration = providerProtocol
+        providerManager.isEnabled = true
+        
+        // Configure on-demand rules
+        let connectRule = NEOnDemandRuleConnect()
+        connectRule.interfaceTypeMatch = .any
+        providerManager.onDemandRules = [connectRule]
+        providerManager.isOnDemandEnabled = false
     }
     
     func connect() {
-        print("VPN connection is not supported on macOS")
+        // First, ensure System Extension is installed
+        SystemExtensionManager.shared.installSystemExtension { [weak self] result in
+            switch result {
+            case .success:
+                self?.connectAfterExtensionInstalled()
+            case .failure(let error):
+                print("Failed to install System Extension: \(error)")
+                // Try to connect anyway in case extension is already installed
+                self?.connectAfterExtensionInstalled()
+            }
+        }
+    }
+    
+    private func connectAfterExtensionInstalled() {
+        loadVPNConfiguration()
+        
+        guard let providerManager = providerManager else {
+            print("VPN configuration not loaded")
+            return
+        }
+        
+        providerManager.saveToPreferences { [weak self] error in
+            if let error = error {
+                print("Failed to save VPN configuration: \(error)")
+                return
+            }
+            
+            self?.providerManager?.loadFromPreferences { error in
+                if let error = error {
+                    print("Failed to reload VPN configuration: \(error)")
+                    return
+                }
+                
+                do {
+                    try self?.providerManager?.connection.startVPNTunnel()
+                } catch {
+                    print("Failed to start VPN: \(error)")
+                }
+            }
+        }
     }
     
     func disconnect() {
-        print("VPN disconnection is not supported on macOS")
+        providerManager?.connection.stopVPNTunnel()
     }
     
     func startVPN(completion: @escaping (Error?) -> Void) {
-        print("VPN connection is not supported on macOS")
-        completion(nil)
+        connect()
+        
+        // Monitor connection status
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            if self?.isConnected == true {
+                completion(nil)
+            } else {
+                completion(NSError(domain: "VPNManager", code: -1, userInfo: [
+                    NSLocalizedDescriptionKey: "Failed to establish VPN connection"
+                ]))
+            }
+        }
     }
     
     func stopVPN() {
-        print("VPN disconnection is not supported on macOS")
+        disconnect()
+    }
+    
+    @objc private func vpnStatusDidChange(_ notification: Notification) {
+        NotificationCenter.default.post(
+            name: .vpnStatusDidChange,
+            object: nil,
+            userInfo: ["isConnected": isConnected]
+        )
     }
 }
 
