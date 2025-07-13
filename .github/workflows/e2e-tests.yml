@@ -47,9 +47,8 @@ jobs:
     - name: Run YouTube blocking tests
       run: |
         cd e2e_tests
-        # Run mock tests in CI environment
-        export CI=true
-        python test_ci_mock.py
+        # Run actual tests with JavaScript injection (works in CI)
+        python test_youtube_blocking.py
     
     - name: Upload test results
       if: always()
