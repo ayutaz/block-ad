@@ -64,6 +64,14 @@ class AdBlockEngine {
     }
     
     /**
+     * Reset statistics
+     */
+    fun resetStatistics(): Boolean = lock.write {
+        if (engineHandle == 0L) return false
+        nativeResetStats(engineHandle)
+    }
+    
+    /**
      * Destroy the engine and free native resources
      */
     fun destroy() = lock.write {
@@ -113,5 +121,8 @@ class AdBlockEngine {
     
     @Keep
     private external fun nativeGetStats(handle: Long): String?
+    
+    @Keep
+    private external fun nativeResetStats(handle: Long): Boolean
 }
 

@@ -46,7 +46,9 @@
       "Bash(unzip:*)",
       "Bash(gh workflow:*)",
       "Bash(gh run watch:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(true)",
+      "Bash(gh issue list:*)"
     ],
     "deny": []
   }

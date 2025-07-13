@@ -124,6 +124,13 @@ impl AdBlockCore {
             .unwrap_or_else(|_| Statistics::new())
     }
 
+    /// Reset statistics
+    pub fn reset_statistics(&self) {
+        if let Ok(mut stats) = self.statistics.lock() {
+            stats.reset();
+        }
+    }
+
     /// Get a reference to the filter engine
     pub fn engine(&self) -> &FilterEngine {
         &self.engine

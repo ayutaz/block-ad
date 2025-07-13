@@ -167,6 +167,25 @@ pub extern "C" fn adblock_engine_get_stats(engine: *mut c_void) -> *mut c_char {
     }
 }
 
+/// Reset statistics
+///
+/// # Safety
+/// The engine pointer must be valid
+#[no_mangle]
+pub extern "C" fn adblock_engine_reset_stats(engine: *mut c_void) -> bool {
+    let Some(engine) = get_engine_ref(engine) else {
+        return false;
+    };
+
+    match engine.core.lock() {
+        Ok(mut core) => {
+            core.reset_statistics();
+            true
+        }
+        Err(_) => false,
+    }
+}
+
 /// Free a string allocated by the library
 ///
 /// # Safety

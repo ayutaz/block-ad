@@ -6,8 +6,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.lifecycleScope
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Security
@@ -22,10 +24,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.adblock.ui.theme.AdBlockTheme
 import com.adblock.vpn.AdBlockVpnService
+import com.adblock.filter.FilterListManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
+    
+    private lateinit var filterListManager: FilterListManager
+    private lateinit var adBlockEngine: AdBlockEngine
     
     private val vpnPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -37,6 +45,13 @@ class MainActivity : ComponentActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Initialize components
+        filterListManager = FilterListManager(this)
+        adBlockEngine = AdBlockEngine()
+        
+        // Load local filter list if available
+        loadLocalFilters()
         
         setContent {
             AdBlockTheme {
@@ -88,11 +103,68 @@ class MainActivity : ComponentActivity() {
     }
     
     private fun updateFilterLists() {
-        // TODO: Implement filter list update
+        lifecycleScope.launch {
+            try {
+                // Show loading state
+                showToast("フィルターリストを更新中...")
+                
+                // Update filter lists
+                val result = filterListManager.updateFilterLists()
+                
+                result.fold(
+                    onSuccess = { filterContent ->
+                        // Load the new filters into the engine
+                        val loaded = adBlockEngine.loadFilterList(filterContent)
+                        if (loaded) {
+                            showToast("フィルターリストを更新しました")
+                        } else {
+                            showToast("フィルターリストの読み込みに失敗しました")
+                        }
+                    },
+                    onFailure = { error ->
+                        showToast("更新に失敗しました: ${error.message}")
+                    }
+                )
+            } catch (e: Exception) {
+                showToast("エラーが発生しました: ${e.message}")
+            }
+        }
     }
     
     private fun clearStatistics() {
-        // TODO: Implement statistics clearing
+        lifecycleScope.launch {
+            try {
+                // Reset statistics in the engine
+                val success = adBlockEngine.resetStatistics()
+                if (success) {
+                    showToast("統計情報をリセットしました")
+                } else {
+                    showToast("リセットに失敗しました")
+                }
+            } catch (e: Exception) {
+                showToast("エラーが発生しました: ${e.message}")
+            }
+        }
+    }
+    
+    private fun loadLocalFilters() {
+        lifecycleScope.launch {
+            val localFilters = filterListManager.loadLocalFilterList()
+            if (localFilters != null) {
+                adBlockEngine.loadFilterList(localFilters)
+            }
+        }
+    }
+    
+    private fun showToast(message: String) {
+        runOnUiThread {
+            android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        adBlockEngine.destroy()
     }
 }
 
