@@ -6,7 +6,7 @@ fn benchmark_filter_engine(c: &mut Criterion) {
 
     // Create engine with sample rules
     let config = Config::default();
-    let mut core = AdBlockCore::new(config);
+    let mut core = AdBlockCore::new(config).expect("Failed to create AdBlockCore");
 
     let filter_rules = r#"
 ||doubleclick.net^
@@ -61,7 +61,7 @@ fn benchmark_filter_loading(c: &mut Criterion) {
     group.bench_function("load_small_filter_list", |b| {
         b.iter(|| {
             let config = Config::default();
-            let mut core = AdBlockCore::new(config);
+            let mut core = AdBlockCore::new(config).expect("Failed to create AdBlockCore");
             core.load_filter_list(black_box(small_filter_list));
         })
     });
@@ -69,7 +69,7 @@ fn benchmark_filter_loading(c: &mut Criterion) {
     group.bench_function("load_large_filter_list", |b| {
         b.iter(|| {
             let config = Config::default();
-            let mut core = AdBlockCore::new(config);
+            let mut core = AdBlockCore::new(config).expect("Failed to create AdBlockCore");
             core.load_filter_list(black_box(large_filter_list));
         })
     });

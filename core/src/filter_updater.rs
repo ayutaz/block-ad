@@ -125,7 +125,7 @@ impl FilterUpdater {
         #[cfg(not(feature = "http"))]
         {
             // Fallback for when HTTP feature is not enabled
-            eprintln!("Note: HTTP feature not enabled. URL: {}", url);
+            eprintln!("Note: HTTP feature not enabled. URL: {url}");
 
             // Simulate different content based on URL
             if url.contains("easylist") {
@@ -153,7 +153,7 @@ impl FilterUpdater {
         for url in &self.config.urls.clone() {
             match self.download_filter_list(url) {
                 Ok(content) => all_filters.push(content),
-                Err(e) => eprintln!("Failed to download {}: {}", url, e),
+                Err(e) => eprintln!("Failed to download {url}: {e}"),
             }
         }
 

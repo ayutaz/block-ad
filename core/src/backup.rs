@@ -194,7 +194,7 @@ impl BackupManager {
 
         // Generate filename with timestamp
         let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
-        let filename = format!("adblock_backup_{}.json", timestamp);
+        let filename = format!("adblock_backup_{timestamp}.json");
 
         self.save_backup(&backup, &filename)?;
 

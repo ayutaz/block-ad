@@ -51,7 +51,7 @@ impl FilterListLoader {
         #[cfg(not(feature = "http"))]
         {
             // Fallback for when HTTP feature is not enabled
-            eprintln!("Warning: HTTP feature not enabled for URL: {}", url);
+            eprintln!("Warning: HTTP feature not enabled for URL: {url}");
             Ok(String::new())
         }
     }

@@ -68,7 +68,7 @@ impl NetworkFilter {
 
         // Also block www subdomain if not already present
         if !normalized.starts_with("www.") {
-            let www_domain = format!("www.{}", normalized);
+            let www_domain = format!("www.{normalized}");
             self.blocked_domains.insert(www_domain.to_lowercase(), true);
         }
     }
