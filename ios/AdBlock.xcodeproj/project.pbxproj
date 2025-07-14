@@ -14,6 +14,9 @@
 		1A12345E1234567890123456 /* VPNManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A12345D1234567890123456 /* VPNManager.swift */; };
 		1A1234601234567890123456 /* AdBlockPacketTunnelProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A12345F1234567890123456 /* AdBlockPacketTunnelProvider.swift */; };
 		1A1234621234567890123456 /* MockPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1234611234567890123456 /* MockPacket.swift */; };
+		1A1234621234567890123457 /* PacketParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1234611234567890123457 /* PacketParser.swift */; };
+		1A1234621234567890123458 /* PerformanceMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1234611234567890123458 /* PerformanceMetrics.swift */; };
+		1A1234621234567890123459 /* AdBlockFFI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1234611234567890123459 /* AdBlockFFI.swift */; };
 		1A1234641234567890123456 /* AdBlockCoreFFI.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A1234631234567890123456 /* AdBlockCoreFFI.xcframework */; };
 		1A1234661234567890123456 /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A1234651234567890123456 /* NetworkExtension.framework */; };
 /* End PBXBuildFile section */
@@ -27,6 +30,9 @@
 		1A12345D1234567890123456 /* VPNManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VPNManager.swift; sourceTree = "<group>"; };
 		1A12345F1234567890123456 /* AdBlockPacketTunnelProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdBlockPacketTunnelProvider.swift; sourceTree = "<group>"; };
 		1A1234611234567890123456 /* MockPacket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockPacket.swift; sourceTree = "<group>"; };
+		1A1234611234567890123457 /* PacketParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PacketParser.swift; sourceTree = "<group>"; };
+		1A1234611234567890123458 /* PerformanceMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceMetrics.swift; sourceTree = "<group>"; };
+		1A1234611234567890123459 /* AdBlockFFI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdBlockFFI.swift; sourceTree = "<group>"; };
 		1A1234631234567890123456 /* AdBlockCoreFFI.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = AdBlockCoreFFI.xcframework; sourceTree = "<group>"; };
 		1A1234651234567890123456 /* NetworkExtension.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkExtension.framework; path = System/Library/Frameworks/NetworkExtension.framework; sourceTree = SDKROOT; };
 		1A1234671234567890123456 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -75,6 +81,9 @@
 				1A12345D1234567890123456 /* VPNManager.swift */,
 				1A12345F1234567890123456 /* AdBlockPacketTunnelProvider.swift */,
 				1A1234611234567890123456 /* MockPacket.swift */,
+				1A1234611234567890123457 /* PacketParser.swift */,
+				1A1234611234567890123458 /* PerformanceMetrics.swift */,
+				1A1234611234567890123459 /* AdBlockFFI.swift */,
 				1A1234671234567890123456 /* Info.plist */,
 				1A1234681234567890123456 /* AdBlock-Bridging-Header.h */,
 				1A1234691234567890123456 /* AdBlock.entitlements */,
@@ -165,6 +174,9 @@
 				1A12345E1234567890123456 /* VPNManager.swift in Sources */,
 				1A1234601234567890123456 /* AdBlockPacketTunnelProvider.swift in Sources */,
 				1A1234621234567890123456 /* MockPacket.swift in Sources */,
+				1A1234621234567890123457 /* PacketParser.swift in Sources */,
+				1A1234621234567890123458 /* PerformanceMetrics.swift in Sources */,
+				1A1234621234567890123459 /* AdBlockFFI.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

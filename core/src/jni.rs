@@ -30,7 +30,7 @@ pub extern "system" fn Java_com_adblock_AdBlockEngine_nativeDestroy(
 
 #[no_mangle]
 pub extern "system" fn Java_com_adblock_AdBlockEngine_nativeShouldBlock(
-    env: JNIEnv,
+    mut env: JNIEnv,
     _class: JClass,
     handle: jlong,
     url: JString,
@@ -60,7 +60,7 @@ pub extern "system" fn Java_com_adblock_AdBlockEngine_nativeShouldBlock(
 
 #[no_mangle]
 pub extern "system" fn Java_com_adblock_AdBlockEngine_nativeLoadFilterList(
-    env: JNIEnv,
+    mut env: JNIEnv,
     _class: JClass,
     handle: jlong,
     filter_list: JString,
@@ -90,7 +90,7 @@ pub extern "system" fn Java_com_adblock_AdBlockEngine_nativeLoadFilterList(
 
 #[no_mangle]
 pub extern "system" fn Java_com_adblock_AdBlockEngine_nativeGetStats(
-    env: JNIEnv,
+    mut env: JNIEnv,
     _class: JClass,
     handle: jlong,
 ) -> jstring {
@@ -135,7 +135,7 @@ pub extern "system" fn Java_com_adblock_AdBlockEngine_nativeResetStats(
 
 #[no_mangle]
 pub extern "system" fn Java_com_adblock_AdBlockEngine_nativeGetMetrics(
-    env: JNIEnv,
+    mut env: JNIEnv,
     _class: JClass,
     handle: jlong,
 ) -> jstring {
