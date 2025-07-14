@@ -40,7 +40,7 @@ pub extern "system" fn Java_com_adblock_AdBlockEngine_nativeShouldBlock(
         return JNI_FALSE;
     }
 
-    let url_str = match env.get_string(url) {
+    let url_str = match env.get_string(&url) {
         Ok(s) => s,
         Err(_) => return JNI_FALSE,
     };
@@ -70,7 +70,7 @@ pub extern "system" fn Java_com_adblock_AdBlockEngine_nativeLoadFilterList(
         return JNI_FALSE;
     }
 
-    let filter_str = match env.get_string(filter_list) {
+    let filter_str = match env.get_string(&filter_list) {
         Ok(s) => s,
         Err(_) => return JNI_FALSE,
     };
@@ -106,7 +106,7 @@ pub extern "system" fn Java_com_adblock_AdBlockEngine_nativeGetStats(
 
     let stats_cstr = unsafe { std::ffi::CStr::from_ptr(stats_ptr) };
     let result = match env.new_string(stats_cstr.to_string_lossy()) {
-        Ok(s) => s.into_inner(),
+        Ok(s) => s.into_raw(),
         Err(_) => std::ptr::null_mut(),
     };
 
@@ -151,7 +151,7 @@ pub extern "system" fn Java_com_adblock_AdBlockEngine_nativeGetMetrics(
 
     let metrics_cstr = unsafe { std::ffi::CStr::from_ptr(metrics_ptr) };
     let result = match env.new_string(metrics_cstr.to_string_lossy()) {
-        Ok(s) => s.into_inner(),
+        Ok(s) => s.into_raw(),
         Err(_) => std::ptr::null_mut(),
     };
 
