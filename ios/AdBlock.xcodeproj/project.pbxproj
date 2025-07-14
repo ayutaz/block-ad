@@ -17,6 +17,10 @@
 		1A1234621234567890123457 /* PacketParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1234611234567890123457 /* PacketParser.swift */; };
 		1A1234621234567890123458 /* PerformanceMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1234611234567890123458 /* PerformanceMetrics.swift */; };
 		1A1234621234567890123459 /* AdBlockFFI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1234611234567890123459 /* AdBlockFFI.swift */; };
+		1A12346212345678901234A0 /* BackgroundTaskManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A12346112345678901234A0 /* BackgroundTaskManager.swift */; };
+		1A12346212345678901234A1 /* CustomRulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A12346112345678901234A1 /* CustomRulesView.swift */; };
+		1A12346212345678901234A2 /* FilterListUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A12346112345678901234A2 /* FilterListUpdater.swift */; };
+		1A12346212345678901234A3 /* SettingsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A12346112345678901234A3 /* SettingsManager.swift */; };
 		1A1234641234567890123456 /* AdBlockCoreFFI.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A1234631234567890123456 /* AdBlockCoreFFI.xcframework */; };
 		1A1234661234567890123456 /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A1234651234567890123456 /* NetworkExtension.framework */; };
 /* End PBXBuildFile section */
@@ -33,6 +37,10 @@
 		1A1234611234567890123457 /* PacketParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PacketParser.swift; sourceTree = "<group>"; };
 		1A1234611234567890123458 /* PerformanceMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceMetrics.swift; sourceTree = "<group>"; };
 		1A1234611234567890123459 /* AdBlockFFI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdBlockFFI.swift; sourceTree = "<group>"; };
+		1A12346112345678901234A0 /* BackgroundTaskManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundTaskManager.swift; sourceTree = "<group>"; };
+		1A12346112345678901234A1 /* CustomRulesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomRulesView.swift; sourceTree = "<group>"; };
+		1A12346112345678901234A2 /* FilterListUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterListUpdater.swift; sourceTree = "<group>"; };
+		1A12346112345678901234A3 /* SettingsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsManager.swift; sourceTree = "<group>"; };
 		1A1234631234567890123456 /* AdBlockCoreFFI.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = AdBlockCoreFFI.xcframework; sourceTree = "<group>"; };
 		1A1234651234567890123456 /* NetworkExtension.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkExtension.framework; path = System/Library/Frameworks/NetworkExtension.framework; sourceTree = SDKROOT; };
 		1A1234671234567890123456 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -84,6 +92,10 @@
 				1A1234611234567890123457 /* PacketParser.swift */,
 				1A1234611234567890123458 /* PerformanceMetrics.swift */,
 				1A1234611234567890123459 /* AdBlockFFI.swift */,
+				1A12346112345678901234A0 /* BackgroundTaskManager.swift */,
+				1A12346112345678901234A1 /* CustomRulesView.swift */,
+				1A12346112345678901234A2 /* FilterListUpdater.swift */,
+				1A12346112345678901234A3 /* SettingsManager.swift */,
 				1A1234671234567890123456 /* Info.plist */,
 				1A1234681234567890123456 /* AdBlock-Bridging-Header.h */,
 				1A1234691234567890123456 /* AdBlock.entitlements */,
@@ -177,6 +189,10 @@
 				1A1234621234567890123457 /* PacketParser.swift in Sources */,
 				1A1234621234567890123458 /* PerformanceMetrics.swift in Sources */,
 				1A1234621234567890123459 /* AdBlockFFI.swift in Sources */,
+				1A12346212345678901234A0 /* BackgroundTaskManager.swift in Sources */,
+				1A12346212345678901234A1 /* CustomRulesView.swift in Sources */,
+				1A12346212345678901234A2 /* FilterListUpdater.swift in Sources */,
+				1A12346212345678901234A3 /* SettingsManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
