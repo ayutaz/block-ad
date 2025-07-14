@@ -190,7 +190,7 @@ pub extern "C" fn adblock_engine_reset_stats(engine: *mut c_void) -> bool {
 ///
 /// # Safety
 /// The engine pointer must be valid
-/// 
+///
 /// Returns a JSON string with performance metrics
 #[no_mangle]
 pub extern "C" fn adblock_engine_get_metrics(engine: *mut c_void) -> *mut c_char {
@@ -201,7 +201,7 @@ pub extern "C" fn adblock_engine_get_metrics(engine: *mut c_void) -> *mut c_char
     match engine.core.lock() {
         Ok(core) => {
             let metrics = core.engine().get_metrics().snapshot();
-            
+
             match metrics.to_json() {
                 Ok(json) => match CString::new(json) {
                     Ok(cstring) => cstring.into_raw(),

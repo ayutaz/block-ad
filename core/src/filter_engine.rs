@@ -2,9 +2,9 @@
 //!
 //! TDD Implementation - Starting with minimal code to pass tests
 
+use crate::metrics::{PerfTimer, PerformanceMetrics};
 use aho_corasick::AhoCorasick;
 use std::sync::Arc;
-use crate::metrics::{PerformanceMetrics, PerfTimer};
 
 /// Result of a block decision
 #[derive(Debug, Clone, PartialEq)]
@@ -174,7 +174,7 @@ impl FilterEngine {
             let ac = AhoCorasick::new(&patterns).unwrap();
             self.domain_matcher = Some(Arc::new(ac));
         }
-        
+
         // Update metrics
         self.metrics.set_filter_count(self.rules.len());
     }
@@ -204,7 +204,8 @@ impl FilterEngine {
 
         // Use Aho-Corasick for fast domain matching
         if let Some(decision) = self.check_aho_corasick_matches(url) {
-            self.metrics.record_request(decision.should_block, timer.elapsed());
+            self.metrics
+                .record_request(decision.should_block, timer.elapsed());
             return decision;
         }
 
@@ -220,7 +221,8 @@ impl FilterEngine {
                             should_block: true,
                             reason: Some(format!("Matched pattern: {pattern}")),
                         };
-                        self.metrics.record_request(decision.should_block, timer.elapsed());
+                        self.metrics
+                            .record_request(decision.should_block, timer.elapsed());
                         return decision;
                     }
                 }
@@ -234,7 +236,8 @@ impl FilterEngine {
             should_block: false,
             reason: None,
         };
-        self.metrics.record_request(decision.should_block, timer.elapsed());
+        self.metrics
+            .record_request(decision.should_block, timer.elapsed());
         decision
     }
 
@@ -438,12 +441,12 @@ impl FilterEngine {
 
         Ok(engine)
     }
-    
+
     /// Get performance metrics
     pub fn get_metrics(&self) -> &PerformanceMetrics {
         &self.metrics
     }
-    
+
     /// Reset performance metrics
     pub fn reset_metrics(&mut self) {
         self.metrics.reset();

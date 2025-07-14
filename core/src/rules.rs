@@ -301,10 +301,7 @@ impl RuleMatcher {
             if let Some(ref domains) = rule.options.domain {
                 for domain in domains {
                     let key = format!("{}:{}", if is_block { "block" } else { "allow" }, domain);
-                    self.domain_index
-                        .entry(key)
-                        .or_default()
-                        .push(rule_index);
+                    self.domain_index.entry(key).or_default().push(rule_index);
                 }
             }
         }

@@ -155,7 +155,12 @@ fn extract_domain_from_rule(rule: &str) -> Option<String> {
     }
 
     // Handle simple domain rules
-    if !rule.contains('/') && !rule.contains('*') && !rule.contains('?') && rule.contains('.') && !rule.starts_with('.') {
+    if !rule.contains('/')
+        && !rule.contains('*')
+        && !rule.contains('?')
+        && rule.contains('.')
+        && !rule.starts_with('.')
+    {
         return Some(rule.to_string());
     }
 
