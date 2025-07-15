@@ -110,33 +110,34 @@ jobs:
           SWIFT_OBJC_BRIDGING_HEADER="AdBlock/AdBlock-Bridging-Header.h" \
           LIBRARY_SEARCH_PATHS="$(SRCROOT)/AdBlockCoreFFI.xcframework/ios-arm64"
     
-    - name: Export IPA
-      run: |
-        cd ios
-        # Create export options plist
-        cat > ExportOptions.plist << EOF
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-            <key>method</key>
-            <string>development</string>
-            <key>compileBitcode</key>
-            <false/>
-            <key>stripSwiftSymbols</key>
-            <true/>
-            <key>signingStyle</key>
-            <string>automatic</string>
-        </dict>
-        </plist>
-        EOF
-        
-        # Export IPA
-        xcodebuild -exportArchive \
-          -archivePath build/AdBlock.xcarchive \
-          -exportPath build/ipa \
-          -exportOptionsPlist ExportOptions.plist \
-          -allowProvisioningUpdates
+    # Skip IPA export for CI builds without proper signing
+    # - name: Export IPA
+    #   run: |
+    #     cd ios
+    #     # Create export options plist
+    #     cat > ExportOptions.plist << EOF
+    #     <?xml version="1.0" encoding="UTF-8"?>
+    #     <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+    #     <plist version="1.0">
+    #     <dict>
+    #         <key>method</key>
+    #         <string>development</string>
+    #         <key>compileBitcode</key>
+    #         <false/>
+    #         <key>stripSwiftSymbols</key>
+    #         <true/>
+    #         <key>signingStyle</key>
+    #         <string>automatic</string>
+    #     </dict>
+    #     </plist>
+    #     EOF
+    #     
+    #     # Export IPA
+    #     xcodebuild -exportArchive \
+    #       -archivePath build/AdBlock.xcarchive \
+    #       -exportPath build/ipa \
+    #       -exportOptionsPlist ExportOptions.plist \
+    #       -allowProvisioningUpdates
     
     - name: Run iOS tests
       run: |
@@ -153,10 +154,14 @@ jobs:
     - name: Display build info
       run: |
         echo "### iOS Build Information ###"
-        if [ -f "ios/build/ipa/AdBlock.ipa" ]; then
-          echo "IPA size: $(du -h ios/build/ipa/AdBlock.ipa | cut -f1)"
+        # if [ -f "ios/build/ipa/AdBlock.ipa" ]; then
+        #   echo "IPA size: $(du -h ios/build/ipa/AdBlock.ipa | cut -f1)"
+        # else
+        #   echo "IPA not found, checking for unsigned app..."
+        if [ -d "ios/build/AdBlock.xcarchive" ]; then
+          echo "Archive created successfully"
         else
-          echo "IPA not found, checking for unsigned app..."
+          echo "Archive not found"
           find ios/build -name "*.app" -type d | head -5
         fi
         echo "Build number: ${{ github.run_number }}"
