@@ -144,7 +144,16 @@ public class AdBlockPacketTunnelProvider: NEPacketTunnelProvider {
     // Removed in favor of PacketParser.extractHost() which supports SNI extraction
     
     private func loadDefaultFilterLists() {
-        let defaultRules = """
+        let adNetworks = getAdNetworkRules()
+        let youtubeRules = getYouTubeRules()
+        let mobileAdPatterns = getMobileAdPatterns()
+        
+        let defaultRules = [adNetworks, youtubeRules, mobileAdPatterns].joined(separator: "\n")
+        loadFilterRules(defaultRules)
+    }
+    
+    private func getAdNetworkRules() -> String {
+        return """
             ||doubleclick.net^
             ||googleadservices.com^
             ||googlesyndication.com^
@@ -209,7 +218,11 @@ public class AdBlockPacketTunnelProvider: NEPacketTunnelProvider {
             ||admost.com^
             ||bytedance.com/ad^
             ||tiktok.com/ads^
-            
+        """
+    }
+    
+    private func getYouTubeRules() -> String {
+        return """
             # YouTube specific rules
             ||youtube.com/api/stats/ads^
             ||youtube.com/pagead^
@@ -241,7 +254,11 @@ public class AdBlockPacketTunnelProvider: NEPacketTunnelProvider {
             ||youtube.com/pcs/activeview^
             ||youtube.com/pagead/paralleladview^
             ||youtube.com/pagead/viewthroughconversion^
-            
+        """
+    }
+    
+    private func getMobileAdPatterns() -> String {
+        return """
             # Mobile app ads
             */ads/*
             */adsdk/*
@@ -262,8 +279,6 @@ public class AdBlockPacketTunnelProvider: NEPacketTunnelProvider {
             */sponsorship/*
             */promoted/*
         """
-        
-        loadFilterRules(defaultRules)
     }
 }
 #endif

@@ -2,24 +2,23 @@ package com.adblock.vpn
 
 import android.content.Intent
 import android.net.VpnService
+import android.os.Build
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mock
-import org.mockito.junit.MockitoJUnitRunner
-import org.mockito.kotlin.*
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowService
 import com.adblock.AdBlockEngine
 import com.adblock.Statistics
 
 /**
  * Unit tests for AdBlockVpnService
  */
-@RunWith(MockitoJUnitRunner::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [Build.VERSION_CODES.TIRAMISU], manifest = Config.NONE)
 class AdBlockVpnServiceTest {
-    
-    @Mock
-    private lateinit var mockIntent: Intent
     
     private lateinit var service: AdBlockVpnService
     
@@ -32,7 +31,7 @@ class AdBlockVpnServiceTest {
     fun `should start VPN service`() {
         // Given: A VPN service instance
         // When: Starting the service
-        val result = service.onStartCommand(mockIntent, 0, 1)
+        val result = service.onStartCommand(Intent(), 0, 1)
         
         // Then: Service should start successfully
         assertEquals(VpnService.START_STICKY, result)
@@ -42,7 +41,7 @@ class AdBlockVpnServiceTest {
     @Test
     fun `should stop VPN service`() {
         // Given: A running VPN service
-        service.onStartCommand(mockIntent, 0, 1)
+        service.onStartCommand(Intent(), 0, 1)
         
         // When: Stopping the service
         service.stop()
@@ -55,7 +54,7 @@ class AdBlockVpnServiceTest {
     fun `should intercept and filter network packets`() {
         // Given: A running VPN service with filter rules
         service.setFilterRules("||ads.com^")
-        service.onStartCommand(mockIntent, 0, 1)
+        service.onStartCommand(Intent(), 0, 1)
         
         // When: Processing a packet to ads.com
         val packet = createMockPacket("ads.com", 443)
@@ -69,7 +68,7 @@ class AdBlockVpnServiceTest {
     fun `should allow non-blocked packets`() {
         // Given: A running VPN service with filter rules
         service.setFilterRules("||ads.com^")
-        service.onStartCommand(mockIntent, 0, 1)
+        service.onStartCommand(Intent(), 0, 1)
         
         // When: Processing a packet to safe site
         val packet = createMockPacket("example.com", 443)
@@ -83,7 +82,7 @@ class AdBlockVpnServiceTest {
     fun `should track statistics`() {
         // Given: A running VPN service
         service.setFilterRules("||ads.com^")
-        service.onStartCommand(mockIntent, 0, 1)
+        service.onStartCommand(Intent(), 0, 1)
         
         // When: Processing multiple packets
         service.shouldBlockPacket(createMockPacket("ads.com", 443))

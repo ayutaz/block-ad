@@ -25,7 +25,11 @@ public class BackgroundTaskManager {
             forTaskWithIdentifier: taskIdentifier,
             using: nil
         ) { task in
-            self.handleFilterUpdateTask(task: task as! BGProcessingTask)
+            guard let processingTask = task as? BGProcessingTask else {
+                task.setTaskCompleted(success: false)
+                return
+            }
+            self.handleFilterUpdateTask(task: processingTask)
         }
     }
     

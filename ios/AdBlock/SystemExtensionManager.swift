@@ -53,7 +53,11 @@ class SystemExtensionManager: NSObject {
 
 extension SystemExtensionManager: OSSystemExtensionRequestDelegate {
     
-    func request(_ request: OSSystemExtensionRequest, actionForReplacingExtension existing: OSSystemExtensionProperties, withExtension ext: OSSystemExtensionProperties) -> OSSystemExtensionRequest.ReplacementAction {
+    func request(
+        _ request: OSSystemExtensionRequest,
+        actionForReplacingExtension existing: OSSystemExtensionProperties,
+        withExtension ext: OSSystemExtensionProperties
+    ) -> OSSystemExtensionRequest.ReplacementAction {
         // Always replace with the new version
         return .replace
     }
