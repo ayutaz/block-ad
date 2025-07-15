@@ -120,7 +120,7 @@ struct ContentView: View {
             .onAppear {
                 loadStatistics()
                 // Load cached filters on startup
-                filterUpdater?.loadCachedFilters()
+                _ = filterUpdater?.loadCachedFilters()
             }
             .onReceive(NotificationCenter.default.publisher(for: .vpnStatusDidChange)) { _ in
                 // Update statistics when VPN status changes

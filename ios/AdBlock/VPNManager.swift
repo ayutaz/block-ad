@@ -50,7 +50,7 @@ class VPNManager: NSObject {
     }
     
     func connect() {
-        guard let manager = vpnManager else {
+        guard vpnManager != nil else {
             setupVPNConfiguration { [weak self] error in
                 if error != nil {
                     print("Failed to setup VPN configuration")
@@ -73,7 +73,7 @@ class VPNManager: NSObject {
     }
     
     func startVPN(completion: @escaping (Error?) -> Void) {
-        guard let manager = vpnManager else {
+        guard vpnManager != nil else {
             setupVPNConfiguration { [weak self] error in
                 if let error = error {
                     completion(error)

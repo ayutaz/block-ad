@@ -87,7 +87,8 @@ public class PacketParser {
         guard payloadLength >= 5 else { return nil }
         
         return packet.withUnsafeBytes { buffer in
-            let payload = buffer.baseAddress!.advanced(by: offset)
+            guard let baseAddress = buffer.baseAddress else { return nil }
+            let payload = baseAddress.advanced(by: offset).assumingMemoryBound(to: UInt8.self)
             
             // Check for TLS handshake (0x16)
             guard payload[0] == 0x16 else { return nil }
