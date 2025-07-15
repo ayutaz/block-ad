@@ -93,7 +93,7 @@ public final class AdBlockEngine {
     /// Reset statistics
     public func resetStatistics() {
         queue.sync(flags: .barrier) {
-            adblock_engine_reset_stats(engineHandle)
+            _ = adblock_engine_reset_stats(engineHandle)
         }
     }
 }

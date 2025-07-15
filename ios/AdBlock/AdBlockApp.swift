@@ -15,8 +15,12 @@ struct AdBlockApp: App {
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         // Configure background tasks
-        let engine = AdBlockEngine()
-        BackgroundTaskManager.shared.configure(with: engine)
+        do {
+            let engine = try AdBlockEngine()
+            BackgroundTaskManager.shared.configure(with: engine)
+        } catch {
+            print("Failed to initialize AdBlockEngine: \(error)")
+        }
         
         // Request notification permissions
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
