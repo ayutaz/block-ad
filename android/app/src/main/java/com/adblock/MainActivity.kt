@@ -28,6 +28,13 @@ import com.adblock.vpn.AdBlockVpnService
 import com.adblock.filter.FilterListManager
 import com.adblock.filter.CustomRulesManager
 import com.adblock.worker.FilterUpdateWorker
+import com.adblock.ui.CustomRulesScreen
+import com.adblock.ui.PerformanceScreen
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -69,25 +76,52 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainScreen(
-                        onToggleVpn = { enabled ->
-                            if (enabled) {
-                                checkVpnPermission()
-                            } else {
-                                stopVpnService()
-                            }
-                        },
-                        onUpdateFilterLists = {
-                            updateFilterLists()
-                        },
-                        onClearStatistics = {
-                            clearStatistics()
-                        },
-                        onOpenCustomFilters = {
-                            val intent = Intent(this, CustomFiltersActivity::class.java)
-                            startActivity(intent)
+                    val navController = rememberNavController()
+                    
+                    NavHost(
+                        navController = navController,
+                        startDestination = "main"
+                    ) {
+                        composable("main") {
+                            MainScreen(
+                                onToggleVpn = { enabled ->
+                                    if (enabled) {
+                                        checkVpnPermission()
+                                    } else {
+                                        stopVpnService()
+                                    }
+                                },
+                                onUpdateFilterLists = {
+                                    updateFilterLists()
+                                },
+                                onClearStatistics = {
+                                    clearStatistics()
+                                },
+                                onOpenCustomFilters = {
+                                    navController.navigate("custom_rules")
+                                },
+                                onOpenPerformance = {
+                                    navController.navigate("performance")
+                                }
+                            )
                         }
-                    )
+                        
+                        composable("custom_rules") {
+                            CustomRulesScreen(
+                                onBack = {
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
+                        
+                        composable("performance") {
+                            PerformanceScreen(
+                                onBack = {
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -191,7 +225,8 @@ fun MainScreen(
     onToggleVpn: (Boolean) -> Unit,
     onUpdateFilterLists: () -> Unit,
     onClearStatistics: () -> Unit,
-    onOpenCustomFilters: () -> Unit = {}
+    onOpenCustomFilters: () -> Unit = {},
+    onOpenPerformance: () -> Unit = {}
 ) {
     var isVpnEnabled by remember { mutableStateOf(false) }
     var statistics by remember { mutableStateOf(Statistics(0, 0, 0)) }
@@ -349,18 +384,36 @@ fun MainScreen(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Custom Filters Button
-            OutlinedButton(
-                onClick = onOpenCustomFilters,
-                modifier = Modifier.fillMaxWidth()
+            // Custom Filters and Performance Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("カスタムフィルター")
+                OutlinedButton(
+                    onClick = onOpenCustomFilters,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("カスタムフィルター")
+                }
+                
+                OutlinedButton(
+                    onClick = onOpenPerformance,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Speed,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("パフォーマンス")
+                }
             }
         }
     }
