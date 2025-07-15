@@ -89,6 +89,13 @@ public final class AdBlockEngine {
             return PerformanceMetrics.fromJSON(metricsString)
         }
     }
+    
+    /// Reset statistics
+    public func resetStatistics() {
+        queue.sync(flags: .barrier) {
+            adblock_engine_reset_stats(engineHandle)
+        }
+    }
 }
 
 /// Errors that can occur during engine operations
