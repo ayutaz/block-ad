@@ -15,10 +15,13 @@ import com.adblock.R
 import com.adblock.Statistics
 import com.adblock.filter.FilterListManager
 import com.adblock.filter.CustomRulesManager
+import com.adblock.AdBlockApplication
+import com.adblock.analytics.CrashContext
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.net.InetAddress
 import java.nio.ByteBuffer
+import android.util.Log
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -179,42 +182,66 @@ class AdBlockVpnService : VpnService() {
     }
     
     private fun extractPacketInfo(packet: ByteBuffer): NetworkPacket? {
-        try {
-            // Skip ethernet header if present
-            if (packet.remaining() < 20) return null
+        return parsePacketSafe(packet)
+            .onFailure { error ->
+                Log.w(TAG, "Failed to parse packet: ${error.message}")
+                AdBlockApplication.instance.crashReporter.reportException(
+                    error,
+                    CrashContext(
+                        vpnActive = true,
+                        customProperties = mapOf(
+                            "packet_size" to packet.remaining().toString()
+                        )
+                    )
+                )
+            }
+            .getOrNull()
+    }
+    
+    private fun parsePacketSafe(packet: ByteBuffer): VpnResult<NetworkPacket> {
+        return vpnTry {
+            // Validate minimum packet size
+            if (packet.remaining() < 20) {
+                throw VpnError.PacketParsingError("Packet too small: ${packet.remaining()} bytes")
+            }
             
             // Parse IP header
             val ipVersion = (packet.get(0).toInt() shr 4) and 0xF
-            if (ipVersion != 4) return null // Only support IPv4 for now
+            if (ipVersion != 4) {
+                throw VpnError.PacketParsingError("Unsupported IP version: $ipVersion")
+            }
             
             // Get protocol (6=TCP, 17=UDP)
             val protocol = packet.get(9).toInt() and 0xFF
-            if (protocol != 6 && protocol != 17) return null
+            if (protocol != 6 && protocol != 17) {
+                throw VpnError.PacketParsingError("Unsupported protocol: $protocol")
+            }
             
             // Get destination IP
             val destIp = ByteArray(4)
             packet.position(16)
             packet.get(destIp)
             val destAddress = InetAddress.getByAddress(destIp).hostAddress
+                ?: throw VpnError.PacketParsingError("Invalid destination address")
             
             // Get IP header length
             val ipHeaderLength = ((packet.get(0).toInt() and 0xF) * 4)
+            
+            // Validate header length
+            if (ipHeaderLength < 20 || ipHeaderLength > packet.remaining()) {
+                throw VpnError.PacketParsingError("Invalid IP header length: $ipHeaderLength")
+            }
             
             // Parse TCP/UDP header for destination port
             packet.position(ipHeaderLength + 2) // Skip source port
             val destPort = packet.getShort().toInt() and 0xFFFF
             
-            // Try to resolve hostname (this is simplified)
-            val hostname = destAddress ?: return null
-            
-            return NetworkPacket(
-                host = hostname,
+            NetworkPacket(
+                host = destAddress,
                 port = destPort,
                 size = packet.remaining()
             )
-        } catch (e: Exception) {
-            return null
-        } finally {
+        }.also {
             packet.rewind()
         }
     }

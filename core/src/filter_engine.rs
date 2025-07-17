@@ -171,8 +171,13 @@ impl FilterEngine {
 
         // Build Aho-Corasick automaton if we have patterns
         if !patterns.is_empty() {
-            let ac = AhoCorasick::new(&patterns).unwrap();
-            self.domain_matcher = Some(Arc::new(ac));
+            match AhoCorasick::new(&patterns) {
+                Ok(ac) => self.domain_matcher = Some(Arc::new(ac)),
+                Err(e) => {
+                    log::error!("Failed to build Aho-Corasick automaton: {}", e);
+                    // Continue without optimized matching
+                }
+            }
         }
 
         // Update metrics

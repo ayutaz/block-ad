@@ -100,6 +100,12 @@ dependencies {
     // JSON parsing
     implementation 'com.google.code.gson:gson:2.10.1'
     
+    // Serialization
+    implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1'
+    
+    // UUID
+    implementation 'com.github.f4b6a3:uuid-creator:5.3.3'
+    
     // Testing
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.mockito:mockito-core:5.5.0'

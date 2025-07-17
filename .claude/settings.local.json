@@ -51,7 +51,8 @@
       "Bash(gh issue list:*)",
       "Bash(cp:*)",
       "Bash(swift test:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(/usr/bin/git status)"
     ],
     "deny": []
   }

@@ -5,13 +5,16 @@
 
 #![allow(non_snake_case)]
 
+pub mod analytics;
 pub mod backup;
+pub mod crash_reporter;
 pub mod ffi;
 pub mod filter_engine;
 pub mod filter_list;
 pub mod filter_updater;
 #[cfg(target_os = "android")]
 pub mod jni;
+pub mod memory_optimization;
 pub mod metrics;
 pub mod network;
 pub mod rules;
